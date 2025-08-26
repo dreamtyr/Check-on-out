@@ -1,59 +1,206 @@
-<style>
-  :root{
-    /* โทนฟ้า-ขาว สบายตา */
-    --bg:#f6f8fc;           /* พื้นหลังอ่อน */
-    --card:#ffffff;         /* การ์ดขาว */
-    --text:#0f172a;         /* ตัวอักษรเข้มอ่านง่าย */
-    --muted:#64748b;        /* คำอธิบาย */
-    --line:#e2e8f0;         /* เส้นคั่น */
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>ลงเวลาทำงาน (พนักงาน)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root{
+      /* ธีมฟ้า-ขาว */
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --blue:#2563eb;
+      --blue-2:#1d4ed8;
+      --green-bg:#e8f5e9; --green:#166534;
+      --yellow-bg:#fff8e1; --yellow:#92400e;
+      --red-bg:#fee2e2; --red:#991b1b;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:780px;margin:32px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 4px 16px rgba(2,6,23,.05)}
+    h1{font-size:22px;margin:0 0 6px}
+    .date{font-size:14px;color:var(--muted);margin-bottom:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select{
+      background:#fff;color:var(--text);border:1px solid var(--line);
+      border-radius:10px;padding:10px 12px;outline:none;width:100%;
+    }
+    input:focus,select:focus{border-color:var(--blue)}
+    .col{flex:1 1 240px}
+    .status{display:inline-block;border-radius:999px;padding:6px 10px;font-size:12px;margin-left:8px;border:1px solid var(--line)}
+    .s-green{background:var(--green-bg);color:var(--green)}
+    .s-yellow{background:var(--yellow-bg);color:var(--yellow)}
+    .s-red{background:var(--red-bg);color:var(--red)}
+    .btns button{
+      border:1px solid var(--line);background:#fff;color:var(--text);
+      border-radius:12px;padding:10px 14px;cursor:pointer;transition:.15s transform;
+    }
+    .btns button:hover{transform:translateY(-1px)}
+    .primary{background:linear-gradient(180deg,var(--blue),var(--blue-2));color:#fff;border:none}
+    .note{font-size:12px;color:var(--muted);margin-top:8px}
+    .hr{height:1px;background:var(--line);margin:18px 0}
+    .ok{color:#15803d}
+    .err{color:#b91c1c}
+    .foot{font-size:12px;color:#64748b;margin-top:10px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>ลงเวลาทำงาน</h1>
+    <div class="date">วันนี้: <strong id="today"></strong></div>
+    <div class="sub">กรุณากรอกรหัสพนักงาน เลือกเผ่า และอนุญาตตำแหน่ง (GPS) เพื่อเช็คอิน/เช็คเอาต์</div>
 
-    /* น้ำเงินหลัก */
-    --blue:#2563eb;
-    --blue-2:#1d4ed8;
+    <div class="row">
+      <div class="col">
+        <label>รหัสพนักงาน</label>
+        <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="col">
+        <label>เผ่า</label>
+        <select id="tribe">
+          <option value="">กำลังโหลด…</option>
+        </select>
+      </div>
+    </div>
 
-    /* สีสถานะ */
-    --green-bg:#e8f5e9; --green:#166534;
-    --yellow-bg:#fff8e1; --yellow:#92400e;
-    --red-bg:#fee2e2; --red:#991b1b;
+    <div class="row" style="align-items:center">
+      <div>สถานะ: <span id="status" class="status">—</span></div>
+      <div id="msg" class="note"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row btns">
+      <button class="primary" onclick="send('checkin')">เข้างาน</button>
+      <button onclick="send('checkout')">ออกงาน</button>
+    </div>
+    <div class="row btns">
+      <button onclick="send('lunch')">ทานข้าว</button>
+      <button onclick="send('smoke_start')">สูบบุหรี่</button>
+      <button onclick="send('toilet_start')">เข้าห้องน้ำ</button>
+      <button onclick="send('break_back')">กลับจากพัก</button>
+    </div>
+
+    <div class="foot">
+      * ระบบจะอนุญาตให้กดปุ่มได้เมื่ออยู่ในรัศมีเผ่าของคุณ (เช่น 100 เมตร) และฝั่ง n8n จะตรวจสอบซ้ำอีกชั้น
+    </div>
+  </div>
+</div>
+
+<script>
+  /* === แก้ค่านี้ให้เป็นโดเมน n8n ของคุณ === */
+  const BASE_API   = 'https://YOUR-N8N-DOMAIN';
+  const API_EMP    = BASE_API + '/api/employee-event'; // POST
+  const API_TRIBES = BASE_API + '/api/tribes';         // GET
+
+  // ฟังก์ชันวันที่ (ไทย)
+  function getTodayLocal(){
+    const now = new Date();
+    const tz = new Date(now.getTime() - now.getTimezoneOffset()*60000);
+    const yyyyMmDd = tz.toISOString().slice(0,10);
+    const [y,m,d] = yyyyMmDd.split('-');
+    return { yyyyMmDd, ddMmYyyy:`${d}/${m}/${y}` };
   }
 
-  html,body{
-    margin:0; padding:0; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-  }
-  .wrap{ max-width:780px; margin:32px auto; padding:0 16px; }
-  .card{
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:22px; box-shadow:0 4px 16px rgba(2,6,23,.05);
-  }
-  h1{ font-size:22px; margin:0 0 10px }
-  .sub{ color:var(--muted); margin-bottom:16px }
-  .row{ display:flex; gap:12px; flex-wrap:wrap; margin:10px 0 }
-  label{ display:block; font-size:13px; color:var(--muted); margin-bottom:6px }
-  input,select{
-    background:#fff; color:var(--text); border:1px solid var(--line);
-    border-radius:10px; padding:10px 12px; outline:none; width:100%;
-  }
-  input:focus,select:focus{ border-color: var(--blue) }
-  .col{ flex:1 1 240px }
+  // แสดงวันที่ปัจจุบัน
+  (function showToday(){
+    const t = getTodayLocal();
+    const el = document.getElementById('today');
+    if(el) el.textContent = t.ddMmYyyy;
+  })();
 
-  /* สถานะพิลล์ */
-  .status{ display:inline-block; border-radius:999px; padding:6px 10px; font-size:12px; margin-left:8px; border:1px solid var(--line) }
-  .s-green{ background:var(--green-bg); color:var(--green) }
-  .s-yellow{ background:var(--yellow-bg); color:var(--yellow) }
-  .s-red{ background:var(--red-bg); color:var(--red) }
-
-  /* ปุ่ม */
-  .btns button{
-    border:1px solid var(--line); background:#fff; color:var(--text);
-    border-radius:12px; padding:10px 14px; cursor:pointer; transition:.15s transform;
+  // โหลดเผ่าจาก API
+  async function loadTribes(){
+    const sel = document.getElementById('tribe');
+    try{
+      const r = await fetch(API_TRIBES);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const tribes = await r.json();
+      sel.innerHTML = '';
+      tribes.forEach(t=>{
+        const name = t.Tribe || t.tribe || t.name;
+        if(name){
+          const op = document.createElement('option');
+          op.value = name;
+          op.textContent = name;
+          sel.appendChild(op);
+        }
+      });
+    }catch(e){
+      sel.innerHTML = '<option value="A">A</option><option value="B">B</option>';
+    }
   }
-  .btns button:hover{ transform:translateY(-1px) }
-  .primary{ background:linear-gradient(180deg,var(--blue),var(--blue-2)); color:#fff; border:none }
+  loadTribes();
 
-  .note{ font-size:12px; color:var(--muted); margin-top:8px }
-  .hr{ height:1px; background:var(--line); margin:18px 0 }
-  .ok{ color:#15803d }
-  .err{ color:#b91c1c }
-  .foot{ font-size:12px; color:#64748b; margin-top:10px }
-</style>
+  // ขอพิกัด
+  function getPos(){
+    return new Promise((res,rej)=>{
+      if(!navigator.geolocation){ rej(new Error('ไม่รองรับตำแหน่ง')); return; }
+      navigator.geolocation.getCurrentPosition(
+        p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
+        err=>rej(err),
+        {enableHighAccuracy:true,timeout:15000}
+      );
+    });
+  }
+  function nowISO(){ return new Date().toISOString(); }
+
+  function setStatus(color,text){
+    const el=document.getElementById('status');
+    el.className='status';
+    if(color==='green') el.classList.add('s-green');
+    else if(color==='yellow') el.classList.add('s-yellow');
+    else if(color==='red') el.classList.add('s-red');
+    el.textContent=text||color||'—';
+  }
+  function setMsg(ok,text){
+    const el=document.getElementById('msg');
+    el.className='note '+(ok?'ok':'err');
+    el.textContent=text||'';
+  }
+
+  async function send(action){
+    const employeeId=document.getElementById('empId').value.trim();
+    const tribe=document.getElementById('tribe').value;
+    if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
+    if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
+
+    setMsg(true,'กำลังขอตำแหน่ง…');
+    let pos;
+    try{ pos=await getPos(); }
+    catch(e){ setMsg(false,'ต้องอนุญาตตำแหน่ง GPS'); return; }
+
+    const t=getTodayLocal();
+    setMsg(true,'กำลังส่งข้อมูล…');
+    try{
+      const r=await fetch(API_EMP,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          employeeId, tribe, action,
+          lat:pos.lat, lng:pos.lng,
+          clientTimeISO:nowISO(),
+          dateLocal:t.yyyyMmDd   // ส่งวันที่ปัจจุบันไปด้วย
+        })
+      });
+      const data=await r.json();
+      if(!data.allowed){
+        setStatus('red','นอกพื้นที่');
+        setMsg(false,data.reason||'ไม่ผ่านเงื่อนไข');
+        return;
+      }
+      setStatus(data.statusColor||'',data.statusColor||'—');
+      setMsg(true,data.message||'บันทึกสำเร็จ');
+    }catch(e){
+      setMsg(false,'ส่งไม่สำเร็จ: '+(e.message||e));
+      setStatus('red','ผิดพลาด');
+    }
+  }
+</script>
+</body>
+</html>
