@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="th">
 <head>
   <meta charset="utf-8">
@@ -16,7 +16,7 @@
     .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
     h1{font-size:22px;margin:0 0 12px}
     .sub{color:var(--muted);margin-bottom:18px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;align-items:center}
     label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
     input,select{background:#0b1022;color:var(--text);border:1px solid #1e293b;border-radius:10px;padding:10px 12px;outline:none;width:100%}
     .col{flex:1 1 220px}
@@ -31,7 +31,7 @@
     .hr{height:1px;background:#1f2937;margin:18px 0}
     .ok{color:#86efac}
     .err{color:#fca5a5}
-    .foot{font-size:12px;color:#9ca3af;margin-top:10px}
+    .count{font-size:13px;border:1px solid #1f2937;background:#0b1022;border-radius:10px;padding:6px 10px}
   </style>
 </head>
 <body>
@@ -48,15 +48,17 @@
       <div class="col">
         <label>เผ่า</label>
         <select id="tribe">
-          <option value="">กำลังโหลด…</option>
+          <option value="เผ่า1">เผ่า 1</option>
+          <option value="เผ่า2">เผ่า 2</option>
+          <option value="เผ่า3">เผ่า 3</option>
+          <option value="เผ่า4">เผ่า 4</option>
         </select>
       </div>
     </div>
 
-    <div class="row" style="align-items:center">
-      <div>สถานะ:
-        <span id="status" class="status">—</span>
-      </div>
+    <div class="row">
+      <div>สถานะ: <span id="status" class="status">—</span></div>
+      <div id="countBox" class="count">จำนวนครั้งที่ลงเวลา (วันนี้): <b id="count">0</b> ครั้ง</div>
       <div id="msg" class="note"></div>
     </div>
 
@@ -73,45 +75,19 @@
       <button onclick="send('break_back')">กลับจากพัก</button>
     </div>
 
-    <div class="foot">
-      * ระบบจะอนุญาตให้กดปุ่มได้เมื่ออยู่ในรัศมีเผ่าของคุณ (เช่น 600 เมตร) และฝั่ง n8n จะตรวจสอบซ้ำอีกชั้น
-    </div>
+    <div class="note">* ระบบจะอนุญาตให้กดปุ่มได้เมื่ออยู่ในรัศมีเผ่าของคุณ (เช่น 600 เมตร) และฝั่ง n8n จะตรวจสอบซ้ำอีกชั้น</div>
   </div>
 </div>
 
 <script>
-  /* === แก้ค่านี้ให้เป็นโดเมน n8n ของคุณ === */
-  const BASE_API   = 'https://YOUR-N8N-DOMAIN';            // เช่น https://n8n.company.com
-  const API_EMP    = BASE_API + '/api/employee-event';     // POST
-  const API_TRIBES = BASE_API + '/api/tribes';             // GET (ถ้าไม่มี endpoint นี้ หน้าเว็บจะใส่ A/B ให้ชั่วคราว)
+  /* === ตั้งค่าโดเมน n8n ของคุณ === */
+  const BASE_API = 'https://YOUR-N8N-DOMAIN';
+  const API_EMP  = BASE_API + '/api/employee-event';
 
-  // โหลดรายชื่อเผ่า (จาก n8n)
-  async function loadTribes(){
-    const sel = document.getElementById('tribe');
-    try{
-      const r = await fetch(API_TRIBES, { credentials:'omit' });
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const tribes = await r.json(); // ควรเป็น [{Tribe:"A"},{Tribe:"B"}]
-      sel.innerHTML = '';
-      tribes.forEach(t=>{
-        const name = t.Tribe || t.tribe || t.name;
-        if(!name) return;
-        const op = document.createElement('option');
-        op.value = name;
-        op.textContent = name;
-        sel.appendChild(op);
-      });
-      if(!sel.options.length){
-        sel.innerHTML = '<option value="A">A</option><option value="B">B</option>';
-      }
-    }catch(e){
-      // ถ้าเรียก API ไม่ได้ ให้ใช้ตัวเลือกชั่วคราว
-      sel.innerHTML = '<option value="A">A</option><option value="B">B</option>';
-    }
-  }
-  loadTribes();
+  // ตัวนับฝั่งหน้าเว็บ (เผื่อ backend ยังไม่ส่งค่า)
+  let localCount = 0;
 
-  // ขอพิกัดจากเบราว์เซอร์
+  // ขอพิกัด
   function getPos(){
     return new Promise((res, rej)=>{
       if(!navigator.geolocation){ rej(new Error('อุปกรณ์ไม่รองรับตำแหน่ง')); return; }
@@ -137,8 +113,10 @@
     el.className = 'note ' + (ok ? 'ok' : 'err');
     el.textContent = text || '';
   }
+  function setCount(n){
+    document.getElementById('count').textContent = String(n||0);
+  }
 
-  // ส่งเหตุการณ์ไป n8n
   async function send(action){
     const employeeId = document.getElementById('empId').value.trim();
     const tribe = document.getElementById('tribe').value;
@@ -162,13 +140,28 @@
         })
       });
       const data = await r.json();
+
       if(!data.allowed){
         setStatus('red','นอกพื้นที่/ห้ามติ๊ก');
         setMsg(false, data.reason || 'ไม่ผ่านเงื่อนไขรัศมี');
         return;
       }
+
+      // อัปเดตสี + ข้อความ
       setStatus(data.statusColor || '', data.statusColor || '—');
       setMsg(true, data.message || 'บันทึกสำเร็จ');
+
+      // อัปเดตจำนวนครั้ง:
+      // 1) ถ้า backend ส่ง timesLogged/ActionCount มาก็ใช้ค่านั้น
+      // 2) ถ้าไม่ส่งมา ใช้ตัวนับฝั่ง client ชั่วคราว
+      const fromBackend = data.timesLogged ?? data.ActionCount ?? data.row?.ActionCount;
+      if(typeof fromBackend === 'number'){
+        setCount(fromBackend);
+        localCount = fromBackend;
+      }else{
+        localCount += 1;
+        setCount(localCount);
+      }
     }catch(e){
       setMsg(false,'ส่งไม่สำเร็จ: ' + (e.message||e));
       setStatus('red','ผิดพลาด');
@@ -177,4 +170,3 @@
 </script>
 </body>
 </html>
- 
