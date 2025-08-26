@@ -2,77 +2,176 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <title>บันทึกวันเดือนปี</title>
+  <title>ลงเวลาทำงาน (พนักงาน)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     :root{
-      --bg:#f6f8fc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0;
-      --blue:#2563eb; --blue-2:#1d4ed8;
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --green-bg:#e8f5e9; --green:#1b5e20;
+      --yellow-bg:#fff8e1; --yellow:#7a5e00;
+      --red-bg:#ffebee; --red:#b71c1c;
     }
-    html,body{
-      margin:0;padding:0;background:var(--bg);color:var(--text);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    }
-    .wrap{max-width:500px;margin:80px auto;padding:0 16px}
-    .card{
-      background:var(--card);border:1px solid var(--line);border-radius:14px;
-      padding:24px;box-shadow:0 4px 16px rgba(2,6,23,.08);text-align:center;
-    }
-    h1{margin:0 0 12px;font-size:22px}
-    .date{font-size:28px;font-weight:700;color:var(--blue);margin-bottom:20px}
-    button{
-      background:linear-gradient(180deg,var(--blue),var(--blue-2));
-      color:#fff;border:none;border-radius:10px;padding:12px 20px;
-      cursor:pointer;font-size:16px;
-    }
-    button:hover{opacity:.9}
-    .msg{margin-top:12px;font-size:14px}
-    .ok{color:green}
-    .err{color:red}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:680px;margin:32px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
+    h1{font-size:22px;margin:0 0 12px}
+    .sub{color:var(--muted);margin-bottom:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select{background:#0b1022;color:var(--text);border:1px solid #1e293b;border-radius:10px;padding:10px 12px;outline:none;width:100%}
+    .col{flex:1 1 220px}
+    .status{display:inline-block;border-radius:30px;padding:6px 10px;font-size:12px;margin-left:8px}
+    .s-green{background:var(--green-bg);color:var(--green)}
+    .s-yellow{background:var(--yellow-bg);color:var(--yellow)}
+    .s-red{background:var(--red-bg);color:var(--red)}
+    .btns button{border:1px solid #243045;background:#0b1022;color:#e5e7eb;border-radius:12px;padding:10px 14px;cursor:pointer}
+    .btns button:hover{transform:translateY(-1px)}
+    .primary{background:linear-gradient(180deg,#22c55e,#16a34a);border:none}
+    .note{font-size:12px;color:var(--muted);margin-top:8px}
+    .hr{height:1px;background:#1f2937;margin:18px 0}
+    .ok{color:#86efac}
+    .err{color:#fca5a5}
+    .foot{font-size:12px;color:#9ca3af;margin-top:10px}
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
-    <h1>วันเดือนปีปัจจุบัน</h1>
-    <div id="today" class="date">--/--/----</div>
-    <button onclick="sendDate()">บันทึกวันที่นี้</button>
-    <div id="msg" class="msg"></div>
+    <h1>ลงเวลาทำงาน</h1>
+    <div class="sub">กรุณากรอกรหัสพนักงาน เลือกเผ่า และอนุญาตตำแหน่ง (GPS) เพื่อเช็คอิน/เช็คเอาต์</div>
+
+    <div class="row">
+      <div class="col">
+        <label>รหัสพนักงาน</label>
+        <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="col">
+        <label>เผ่า</label>
+        <select id="tribe">
+          <option value="">กำลังโหลด…</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="align-items:center">
+      <div>สถานะ:
+        <span id="status" class="status">—</span>
+      </div>
+      <div id="msg" class="note"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row btns">
+      <button class="primary" onclick="send('checkin')">เข้างาน</button>
+      <button onclick="send('checkout')">ออกงาน</button>
+    </div>
+    <div class="row btns">
+      <button onclick="send('lunch')">ทานข้าว</button>
+      <button onclick="send('smoke_start')">สูบบุหรี่</button>
+      <button onclick="send('toilet_start')">เข้าห้องน้ำ</button>
+      <button onclick="send('break_back')">กลับจากพัก</button>
+    </div>
+
+    <div class="foot">
+      * ระบบจะอนุญาตให้กดปุ่มได้เมื่ออยู่ในรัศมีเผ่าของคุณ (เช่น 600 เมตร) และฝั่ง n8n จะตรวจสอบซ้ำอีกชั้น
+    </div>
   </div>
 </div>
 
 <script>
-  // === ตั้งค่า API ของคุณ (n8n หรือ Apps Script) ===
-  const API_URL = "https://YOUR-N8N-DOMAIN/api/save-date";
+  /* === แก้ค่านี้ให้เป็นโดเมน n8n ของคุณ === */
+  const BASE_API   = 'https://YOUR-N8N-DOMAIN';            // เช่น https://n8n.company.com
+  const API_EMP    = BASE_API + '/api/employee-event';     // POST
+  const API_TRIBES = BASE_API + '/api/tribes';             // GET (ถ้าไม่มี endpoint นี้ หน้าเว็บจะใส่ A/B ให้ชั่วคราว)
 
-  function getTodayLocal(){
-    const now = new Date();
-    const tz = new Date(now.getTime() - now.getTimezoneOffset()*60000);
-    const yyyyMmDd = tz.toISOString().slice(0,10); // YYYY-MM-DD
-    const [y,m,d] = yyyyMmDd.split('-');
-    return { yyyyMmDd, ddMmYyyy:`${d}/${m}/${y}` };
+  // โหลดรายชื่อเผ่า (จาก n8n)
+  async function loadTribes(){
+    const sel = document.getElementById('tribe');
+    try{
+      const r = await fetch(API_TRIBES, { credentials:'omit' });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const tribes = await r.json(); // ควรเป็น [{Tribe:"A"},{Tribe:"B"}]
+      sel.innerHTML = '';
+      tribes.forEach(t=>{
+        const name = t.Tribe || t.tribe || t.name;
+        if(!name) return;
+        const op = document.createElement('option');
+        op.value = name;
+        op.textContent = name;
+        sel.appendChild(op);
+      });
+      if(!sel.options.length){
+        sel.innerHTML = '<option value="A">A</option><option value="B">B</option>';
+      }
+    }catch(e){
+      // ถ้าเรียก API ไม่ได้ ให้ใช้ตัวเลือกชั่วคราว
+      sel.innerHTML = '<option value="A">A</option><option value="B">B</option>';
+    }
+  }
+  loadTribes();
+
+  // ขอพิกัดจากเบราว์เซอร์
+  function getPos(){
+    return new Promise((res, rej)=>{
+      if(!navigator.geolocation){ rej(new Error('อุปกรณ์ไม่รองรับตำแหน่ง')); return; }
+      navigator.geolocation.getCurrentPosition(
+        p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
+        err=>rej(err),
+        {enableHighAccuracy:true, timeout:15000}
+      );
+    });
+  }
+  function nowISO(){ return new Date().toISOString(); }
+
+  function setStatus(color, text){
+    const el = document.getElementById('status');
+    el.className = 'status';
+    if(color==='green') el.classList.add('s-green');
+    else if(color==='yellow') el.classList.add('s-yellow');
+    else if(color==='red') el.classList.add('s-red');
+    el.textContent = text ?? color ?? '—';
+  }
+  function setMsg(ok, text){
+    const el = document.getElementById('msg');
+    el.className = 'note ' + (ok ? 'ok' : 'err');
+    el.textContent = text || '';
   }
 
-  // แสดงวันปัจจุบัน
-  const t = getTodayLocal();
-  document.getElementById('today').textContent = t.ddMmYyyy;
+  // ส่งเหตุการณ์ไป n8n
+  async function send(action){
+    const employeeId = document.getElementById('empId').value.trim();
+    const tribe = document.getElementById('tribe').value;
+    if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
+    if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
 
-  async function sendDate(){
-    const msg = document.getElementById('msg');
-    msg.textContent = "กำลังบันทึก...";
+    setMsg(true, 'กำลังขอตำแหน่ง…');
+    let pos;
+    try{ pos = await getPos(); }
+    catch(e){ setMsg(false,'ต้องอนุญาตตำแหน่ง (GPS) เพื่อใช้งาน'); return; }
+
+    setMsg(true, 'กำลังส่งข้อมูล…');
     try{
-      const r = await fetch(API_URL,{
-        method:"POST",
+      const r = await fetch(API_EMP, {
+        method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ date: t.yyyyMmDd })
+        body: JSON.stringify({
+          employeeId, tribe, action,
+          lat: pos.lat, lng: pos.lng,
+          clientTimeISO: nowISO()
+        })
       });
-      if(!r.ok) throw new Error("HTTP "+r.status);
       const data = await r.json();
-      msg.textContent = "บันทึกสำเร็จ ✅";
-      msg.className = "msg ok";
+      if(!data.allowed){
+        setStatus('red','นอกพื้นที่/ห้ามติ๊ก');
+        setMsg(false, data.reason || 'ไม่ผ่านเงื่อนไขรัศมี');
+        return;
+      }
+      setStatus(data.statusColor || '', data.statusColor || '—');
+      setMsg(true, data.message || 'บันทึกสำเร็จ');
     }catch(e){
-      msg.textContent = "บันทึกไม่สำเร็จ ❌: "+e.message;
-      msg.className = "msg err";
+      setMsg(false,'ส่งไม่สำเร็จ: ' + (e.message||e));
+      setStatus('red','ผิดพลาด');
     }
   }
 </script>
