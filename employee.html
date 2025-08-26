@@ -15,7 +15,8 @@
     .wrap{max-width:680px;margin:32px auto;padding:0 16px}
     .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
     h1{font-size:22px;margin:0 0 12px}
-    .sub{color:var(--muted);margin-bottom:18px}
+    .sub{color:var(--muted);margin-bottom:12px}
+    .date{font-size:16px;margin-bottom:18px}
     .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
     label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
     input,select{background:#0b1022;color:var(--text);border:1px solid #1e293b;border-radius:10px;padding:10px 12px;outline:none;width:100%}
@@ -40,6 +41,9 @@
 <div class="wrap">
   <div class="card">
     <h1>ลงเวลาทำงาน</h1>
+    <!-- ✅ เพิ่มแสดงวัน/เดือน/ปี -->
+    <div class="date">วันนี้: <strong id="today"></strong></div>
+
     <div class="sub">กรุณากรอกรหัสพนักงาน เลือกเผ่า และอนุญาตตำแหน่ง (GPS) เพื่อเช็คอิน/เช็คเอาต์</div>
 
     <div class="row">
@@ -93,139 +97,88 @@
 </div>
 
 <script>
-  /* === แก้ค่านี้ให้เป็นโดเมน n8n ของคุณ === */
-  const BASE_API   = 'https://YOUR-N8N-DOMAIN';     // เช่น https://n8n.company.com
+  const BASE_API   = 'https://YOUR-N8N-DOMAIN';
   const API_EMP    = BASE_API + '/api/employee-event';
 
-  // ====== วันที่ไทย (ใช้ส่งไปบันทึกที่ Sheet2 ด้วย) ======
+  // === วันที่ไทย ===
   function todayLocal(){
     const now = new Date();
     const tz = new Date(now.getTime() - now.getTimezoneOffset()*60000);
-    return tz.toISOString().slice(0,10); // YYYY-MM-DD
+    const yyyyMmDd = tz.toISOString().slice(0,10);
+    const [y,m,d] = yyyyMmDd.split('-');
+    return { iso: yyyyMmDd, display:`${d}/${m}/${y}` };
   }
 
-  // ====== เก็บ/อ่านตัวนับใน localStorage ต่อพนักงานต่อวัน ======
-  function counterKey(empId){ return `ctr:${empId}:${todayLocal()}`; }
+  // แสดงวันที่ปัจจุบัน
+  document.getElementById('today').textContent = todayLocal().display;
 
+  // ====== counter ======
+  function counterKey(empId){ return `ctr:${empId}:${todayLocal().iso}`; }
   function readCounters(empId){
-    try{
-      const raw = localStorage.getItem(counterKey(empId));
-      if(!raw) return { lunch:0, smoke:0, toilet:0 };
-      const obj = JSON.parse(raw);
-      return { lunch:obj.lunch||0, smoke:obj.smoke||0, toilet:obj.toilet||0 };
-    }catch(e){ return { lunch:0, smoke:0, toilet:0 }; }
+    try{ return JSON.parse(localStorage.getItem(counterKey(empId))) || {lunch:0,smoke:0,toilet:0}; }
+    catch{ return {lunch:0,smoke:0,toilet:0}; }
   }
-  function writeCounters(empId, c){
-    try{ localStorage.setItem(counterKey(empId), JSON.stringify(c)); }catch(e){}
-  }
-  function showCounters(empId, fromServer){
-    // ถ้าแบ็กเอนด์ส่งค่ามา ให้ใช้ค่านั้นครอบ (เช่น SmokeCount, ToiletCount)
+  function writeCounters(empId,c){ localStorage.setItem(counterKey(empId), JSON.stringify(c)); }
+  function showCounters(empId,fromServer){
     let c = readCounters(empId);
     if(fromServer){
-      if(typeof fromServer.LunchCount === 'number')  c.lunch  = fromServer.LunchCount;
-      if(typeof fromServer.SmokeCount === 'number')  c.smoke  = fromServer.SmokeCount;
-      if(typeof fromServer.ToiletCount === 'number') c.toilet = fromServer.ToiletCount;
-      writeCounters(empId, c);
+      if(typeof fromServer.LunchCount==='number') c.lunch=fromServer.LunchCount;
+      if(typeof fromServer.SmokeCount==='number') c.smoke=fromServer.SmokeCount;
+      if(typeof fromServer.ToiletCount==='number') c.toilet=fromServer.ToiletCount;
+      writeCounters(empId,c);
     }
-    document.getElementById('c-lunch').textContent  = c.lunch;
-    document.getElementById('c-smoke').textContent  = c.smoke;
-    document.getElementById('c-toilet').textContent = c.toilet;
+    document.getElementById('c-lunch').textContent=c.lunch;
+    document.getElementById('c-smoke').textContent=c.smoke;
+    document.getElementById('c-toilet').textContent=c.toilet;
   }
 
-  // ====== ขอพิกัดจากเบราว์เซอร์ ======
-  function getPos(){
-    return new Promise((res, rej)=>{
-      if(!navigator.geolocation){ rej(new Error('อุปกรณ์ไม่รองรับตำแหน่ง')); return; }
-      navigator.geolocation.getCurrentPosition(
-        p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
-        err=>rej(err),
-        {enableHighAccuracy:true, timeout:15000}
-      );
-    });
+  // ====== GPS ======
+  function getPos(){return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej(new Error('no gps'));
+    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),rej);
+  });}
+  function nowISO(){return new Date().toISOString();}
+  function setStatus(color,text){
+    const el=document.getElementById('status'); el.className='status';
+    if(color==='green')el.classList.add('s-green');
+    else if(color==='yellow')el.classList.add('s-yellow');
+    else if(color==='red')el.classList.add('s-red');
+    el.textContent=text||color||'—';
   }
-  function nowISO(){ return new Date().toISOString(); }
-
-  function setStatus(color, text){
-    const el = document.getElementById('status');
-    el.className = 'status';
-    if(color==='green') el.classList.add('s-green');
-    else if(color==='yellow') el.classList.add('s-yellow');
-    else if(color==='red') el.classList.add('s-red');
-    el.textContent = text ?? color ?? '—';
-  }
-  function setMsg(ok, text){
-    const el = document.getElementById('msg');
-    el.className = 'note ' + (ok ? 'ok' : 'err');
-    el.textContent = text || '';
+  function setMsg(ok,text){
+    const el=document.getElementById('msg'); el.className='note '+(ok?'ok':'err'); el.textContent=text||'';
   }
 
-  // แสดงตัวนับเริ่มต้น (เมื่อพิมพ์รหัส)
-  document.getElementById('empId').addEventListener('input', (e)=>{
-    const id = e.target.value.trim();
-    if(id){ showCounters(id); }
-    else{
-      document.getElementById('c-lunch').textContent = '0';
-      document.getElementById('c-smoke').textContent = '0';
-      document.getElementById('c-toilet').textContent = '0';
-    }
-  });
-
-  // ====== ส่งเหตุการณ์ไป n8n ======
+  // ====== send ======
   async function send(action){
-    const employeeId = document.getElementById('empId').value.trim();
-    const tribe = document.getElementById('tribe').value;
-    if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
-    if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
-
-    setMsg(true, 'กำลังขอตำแหน่ง…');
-    let pos;
-    try{ pos = await getPos(); }
-    catch(e){ setMsg(false,'ต้องอนุญาตตำแหน่ง (GPS) เพื่อใช้งาน'); return; }
-
-    setMsg(true, 'กำลังส่งข้อมูล…');
+    const employeeId=document.getElementById('empId').value.trim();
+    const tribe=document.getElementById('tribe').value;
+    if(!employeeId){setMsg(false,'กรุณากรอกรหัสพนักงาน');return;}
+    if(!tribe){setMsg(false,'กรุณาเลือกเผ่า');return;}
+    let pos; try{pos=await getPos();}catch{setMsg(false,'ต้องอนุญาต GPS');return;}
+    setMsg(true,'กำลังส่งข้อมูล...');
     try{
-      const r = await fetch(API_EMP, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          employeeId, tribe, action,
-          lat: pos.lat, lng: pos.lng,
-          clientTimeISO: nowISO(),
-          dateLocal: todayLocal()   // ส่งวันไปให้ Sheet2 ด้วย
-        })
-      });
-      const data = await r.json();
-      if(!data.allowed){
-        setStatus('red','นอกพื้นที่/ห้ามติ๊ก');
-        setMsg(false, data.reason || 'ไม่ผ่านเงื่อนไขรัศมี');
-        return;
-      }
-      setStatus(data.statusColor || '', data.statusColor || '—');
-      setMsg(true, data.message || 'บันทึกสำเร็จ');
-
-      // อัปเดตตัวนับ (ถ้าแบ็กเอนด์ส่งค่ามา จะใช้ค่านั้น, ไม่งั้นนับเอง)
-      const countersFromServer = {
-        LunchCount:  data.row?.LunchCount,
-        SmokeCount:  data.row?.SmokeCount,
-        ToiletCount: data.row?.ToiletCount
-      };
-      if([ 'lunch','smoke_start','toilet_start' ].includes(action) && !Number.isFinite(countersFromServer.LunchCount) && !Number.isFinite(countersFromServer.SmokeCount) && !Number.isFinite(countersFromServer.ToiletCount)){
-        // แบ็กเอนด์ไม่ได้ส่งค่ามา → นับฝั่งหน้าเว็บ (สำรอง)
-        const c = readCounters(employeeId);
-        if(action==='lunch')        c.lunch  += 1;
-        if(action==='smoke_start')  c.smoke  += 1;
-        if(action==='toilet_start') c.toilet += 1;
-        writeCounters(employeeId, c);
-        showCounters(employeeId);   // รีเฟรชตัวเลข
-      }else{
-        showCounters(employeeId, countersFromServer);
-      }
-
-    }catch(e){
-      setMsg(false,'ส่งไม่สำเร็จ: ' + (e.message||e));
-      setStatus('red','ผิดพลาด');
-    }
+      const t=todayLocal();
+      const r=await fetch(API_EMP,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({employeeId,tribe,action,lat:pos.lat,lng:pos.lng,clientTimeISO:nowISO(),dateLocal:t.iso})});
+      const data=await r.json();
+      if(!data.allowed){setStatus('red','นอกพื้นที่');setMsg(false,data.reason||'ไม่อนุญาต');return;}
+      setStatus(data.statusColor||'',data.statusColor||'—');
+      setMsg(true,data.message||'บันทึกสำเร็จ');
+      const counters={LunchCount:data.row?.LunchCount,SmokeCount:data.row?.SmokeCount,ToiletCount:data.row?.ToiletCount};
+      if(['lunch','smoke_start','toilet_start'].includes(action) && !Object.values(counters).some(v=>typeof v==='number')){
+        const c=readCounters(employeeId);
+        if(action==='lunch')c.lunch++;
+        if(action==='smoke_start')c.smoke++;
+        if(action==='toilet_start')c.toilet++;
+        writeCounters(employeeId,c);showCounters(employeeId);
+      }else showCounters(employeeId,counters);
+    }catch(e){setMsg(false,'ส่งไม่สำเร็จ:'+e.message);setStatus('red','ผิดพลาด');}
   }
+
+  document.getElementById('empId').addEventListener('input',e=>{
+    const id=e.target.value.trim(); if(id)showCounters(id);
+  });
 </script>
 </body>
 </html>
