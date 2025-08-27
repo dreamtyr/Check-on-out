@@ -1,524 +1,245 @@
 <!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<title>ระบบลงเวลา (พนักงาน/หัวหน้า)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-  :root{
-    --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
-    --green-bg:#e8f5e9; --green:#1b5e20; --yellow-bg:#fff8e1; --yellow:#7a5e00; --red-bg:#ffebee; --red:#b71c1c;
-    --blue:#2563eb; --blue-100:#eff6ff; --border:#e5e7eb;
-  }
-  html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-  .hidden{display:none}
-
-  /* LOGIN */
-  .loginWrap{max-width:540px;margin:28px auto;padding:16px}
-  .loginCard{border:1px solid var(--border);border-radius:14px;padding:20px;background:#fff}
-  .loginCard h2{margin:0 0 10px}
-  .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
-  label{display:block;font-size:13px;color:#475569;margin-bottom:6px}
-  input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #cbd5e1;outline:none;background:#fff}
-  button{cursor:pointer}
-  .btn{padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:white}
-  .btnPrimary{background:var(--blue);border:none;color:#fff}
-
-  /* EMPLOYEE (ธีมเข้ม) */
-  body.employee{background:var(--bg);color:var(--text)}
-  .wrap{max-width:760px;margin:32px auto;padding:0 16px}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
-  h1{font-size:22px;margin:0 0 8px}
-  .date{font-size:14px;color:#cbd5e1;margin-bottom:12px}
-  .sub{color:var(--muted);margin-bottom:18px}
-  .status{display:inline-block;border-radius:30px;padding:6px 10px;font-size:12px;margin-left:8px}
-  .s-green{background:var(--green-bg);color:var(--green)}
-  .s-yellow{background:var(--yellow-bg);color:var(--yellow)}
-  .s-red{background:var(--red-bg);color:var(--red)}
-  .btns button{border:1px solid #243045;background:#0b1022;color:#e5e7eb;border-radius:12px;padding:10px 14px}
-  .btns button:hover{transform:translateY(-1px)}
-  .primary{background:linear-gradient(180deg,#22c55e,#16a34a);border:none}
-  .foot{font-size:12px;color:#9ca3af;margin-top:10px}
-  .counter{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .pill{display:inline-block;padding:6px 10px;border:1px solid #243045;border-radius:999px;font-size:12px;background:#0b1022}
-  .hr{height:1px;background:#1f2937;margin:18px 0}
-  .ok{color:#86efac}.err{color:#fca5a5}
-
-  /* MANAGER (ธีมฟ้า–ขาว) */
-  body.manager{background:#f8fafc;color:#0f172a}
-  .container{max-width:1100px;margin:24px auto;padding:0 16px}
-  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-  .cardLight{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px}
-  .stat{display:flex;gap:10px;flex-wrap:wrap}
-  .chip{padding:10px 12px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe}
-  .chip.green{background:#ecfdf5;border-color:#bbf7d0}
-  .chip.yellow{background:#fffbeb;border-color:#fde68a}
-  .chip.red{background:#fef2f2;border-color:#fecaca}
-  table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff;border:1px solid #e2e8f0}
-  th,td{border-bottom:1px solid #e2e8f0;padding:8px 10px;text-align:left;font-size:14px}
-  th{background:#f1f5f9}
-  .badge{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #cbd5e1}
-  .b-green{background:#ecfdf5;border-color:#86efac}
-  .b-yellow{background:#fffbeb;border-color:#fde68a}
-  .b-red{background:#fef2f2;border-color:#fecaca}
-  .right{margin-left:auto}
-  .remarkBox{display:flex;gap:8px}
-</style>
+  <meta charset="utf-8">
+  <title>ลงเวลาทำงาน (พนักงาน)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
+      --green-bg:#e8f5e9; --green:#1b5e20;
+      --yellow-bg:#fff8e1; --yellow:#7a5e00;
+      --red-bg:#ffebee; --red:#b71c1c;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:760px;margin:32px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
+    h1{font-size:22px;margin:0 0 8px}
+    .date{font-size:14px;color:#cbd5e1;margin-bottom:12px}
+    .sub{color:var(--muted);margin-bottom:18px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input,select{background:#0b1022;color:var(--text);border:1px solid #1e293b;border-radius:10px;padding:10px 12px;outline:none;width:100%}
+    .col{flex:1 1 220px}
+    .status{display:inline-block;border-radius:30px;padding:6px 10px;font-size:12px;margin-left:8px}
+    .s-green{background:var(--green-bg);color:var(--green)}
+    .s-yellow{background:var(--yellow-bg);color:var(--yellow)}
+    .s-red{background:var(--red-bg);color:var(--red)}
+    .btns button{border:1px solid #243045;background:#0b1022;color:#e5e7eb;border-radius:12px;padding:10px 14px;cursor:pointer}
+    .btns button:hover{transform:translateY(-1px)}
+    .primary{background:linear-gradient(180deg,#22c55e,#16a34a);border:none}
+    .note{font-size:12px;color:var(--muted);margin-top:8px}
+    .hr{height:1px;background:#1f2937;margin:18px 0}
+    .ok{color:#86efac}
+    .err{color:#fca5a5}
+    .foot{font-size:12px;color:#9ca3af;margin-top:10px}
+    .counter{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid #243045;border-radius:999px;font-size:12px;background:#0b1022}
+    .timer{margin-top:8px;font-size:13px;color:#c7d2fe}
+  </style>
 </head>
 <body>
+<div class="wrap">
+  <div class="card">
+    <h1>ลงเวลาทำงาน</h1>
+    <div class="date">วันนี้: <strong id="today">--/--/----</strong></div>
+    <div class="sub">กรุณาเลือกเผ่า อนุญาต GPS แล้วกดปุ่มเพื่อเช็คอิน/เช็คเอาต์</div>
 
-<!-- ===== LOGIN ===== -->
-<div id="login" class="loginWrap">
-  <div class="loginCard">
-    <h2>เข้าสู่ระบบ</h2>
     <div class="row">
-      <div style="flex:1">
+      <div class="col">
         <label>รหัสพนักงาน</label>
-        <input id="loginEmpId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
+        <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
       </div>
-      <div style="align-self:end">
-        <button class="btn btnPrimary" onclick="doLogin()">เข้าสู่ระบบ</button>
-      </div>
-    </div>
-    <div class="note">ระบบจะตรวจ Role จาก Google Sheet ผ่าน n8n (manager/employee)</div>
-    <div id="loginMsg" class="note" style="margin-top:6px;color:#dc2626"></div>
-  </div>
-</div>
-
-<!-- ===== EMPLOYEE VIEW ===== -->
-<div id="empView" class="hidden">
-  <div class="wrap">
-    <div class="card">
-      <h1>ลงเวลาทำงาน</h1>
-      <div class="date">วันนี้: <strong id="today">--/--/----</strong></div>
-      <div class="sub">กรุณากรอกรหัสพนักงาน เลือกเผ่า และอนุญาตตำแหน่ง (GPS) เพื่อเช็คอิน/เช็คเอาต์</div>
-
-      <div class="row">
-        <div class="col" style="flex:1">
-          <label>รหัสพนักงาน</label>
-          <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
-        </div>
-        <div class="col" style="flex:1">
-          <label>เผ่า</label>
-          <select id="tribe">
-            <option value="เผ่า 1">เผ่า 1</option>
-            <option value="เผ่า 2">เผ่า 2</option>
-            <option value="เผ่า 3">เผ่า 3</option>
-            <option value="เผ่า 4">เผ่า 4</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row" style="align-items:center">
-        <div>สถานะ: <span id="status" class="status">—</span></div>
-        <div id="msg" class="note"></div>
-      </div>
-
-      <div class="row counter">
-        <span class="note">จำนวนครั้งที่กดพัก (วันนี้):</span>
-        <span class="pill">ทานข้าว: <strong id="c-lunch">0</strong></span>
-        <span class="pill">สูบบุหรี่: <strong id="c-smoke">0</strong></span>
-        <span class="pill">เข้าห้องน้ำ: <strong id="c-toilet">0</strong></span>
-      </div>
-
-      <div class="hr"></div>
-
-      <div class="row btns">
-        <button class="primary" onclick="send('checkin')">เข้างาน</button>
-        <button onclick="send('checkout')">ออกงาน</button>
-      </div>
-      <div class="row btns">
-        <button onclick="send('lunch')">ทานข้าว</button>
-        <button onclick="send('smoke_start')">สูบบุหรี่</button>
-        <button onclick="send('toilet_start')">เข้าห้องน้ำ</button>
-        <button onclick="send('break_back')">กลับจากพัก</button>
-      </div>
-
-      <div class="foot">
-        * กดปุ่มได้เมื่ออยู่ในรัศมีเผ่าของคุณ และฝั่ง n8n จะตรวจซ้ำอีกชั้น
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MANAGER VIEW ===== -->
-<div id="manView" class="hidden">
-  <div class="container">
-    <div class="bar">
-      <h2 style="margin:0">รายงานการแสกน</h2>
-      <div class="right"></div>
-    </div>
-
-    <!-- Filter -->
-    <div class="cardLight" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <div>
-        <label>วันที่</label>
-        <input id="mDate" type="date">
-      </div>
-      <div>
+      <div class="col">
         <label>เผ่า</label>
-        <select id="mTribe">
-          <option value="">ทั้งหมด</option>
-          <option value="1">เผ่า 1</option>
-          <option value="2">เผ่า 2</option>
-          <option value="3">เผ่า 3</option>
-          <option value="4">เผ่า 4</option>
+        <select id="tribe">
+          <option value="เผ่า 1">เผ่า 1</option>
+          <option value="เผ่า 2">เผ่า 2</option>
+          <option value="เผ่า 3">เผ่า 3</option>
+          <option value="เผ่า 4">เผ่า 4</option>
         </select>
       </div>
-      <div style="flex:1 1 220px">
-        <label>ค้นหา (รหัส/ชื่อ)</label>
-        <input id="mSearch" placeholder="เช่น 100234 หรือ ชื่อ">
-      </div>
-      <button class="btn btnPrimary" onclick="loadManager()">ค้นหา</button>
     </div>
 
-    <!-- Manager action panel (บังคับหัวหน้า) -->
-    <div class="cardLight" style="margin:12px 0">
-      <h3 style="margin:0 0 10px">ลงเวลา (หัวหน้า/ทำแทนพนักงาน)</h3>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">
-        <div>
-          <label>โหมด</label>
-          <select id="mMode">
-            <option value="self">ฉัน (หัวหน้า)</option>
-            <option value="proxy">ทำแทนพนักงาน</option>
-          </select>
-        </div>
-        <div>
-          <label>รหัสพนักงาน</label>
-          <input id="mEmp" placeholder="กรอกรหัส หรือดับเบิลคลิกแถวในตาราง">
-        </div>
-        <div>
-          <label>เผ่า</label>
-          <select id="mEmpTribe">
-            <option value="เผ่า 1">เผ่า 1</option>
-            <option value="เผ่า 2">เผ่า 2</option>
-            <option value="เผ่า 3">เผ่า 3</option>
-            <option value="เผ่า 4">เผ่า 4</option>
-          </select>
-        </div>
-        <div style="min-width:260px;flex:1">
-          <label>เหตุผล (ต้องระบุเมื่อทำแทน)</label>
-          <input id="mReason" placeholder="เช่น ลืมกดเข้า / อุปกรณ์มีปัญหา">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="sendFor('checkin')">เข้างาน</button>
-          <button class="btn" onclick="sendFor('checkout')">ออกงาน</button>
-          <button class="btn" onclick="sendFor('lunch')">ทานข้าว</button>
-          <button class="btn" onclick="sendFor('smoke_start')">สูบบุหรี่</button>
-          <button class="btn" onclick="sendFor('toilet_start')">เข้าห้องน้ำ</button>
-          <button class="btn btnPrimary" onclick="sendFor('break_back')">กลับจากพัก</button>
-        </div>
-      </div>
-      <div id="mActionMsg" class="note" style="margin-top:6px;color:#0f766e"></div>
+    <div class="row" style="align-items:center">
+      <div>สถานะ: <span id="status" class="status">—</span></div>
+      <div id="msg" class="note"></div>
     </div>
 
-    <!-- Summary chips -->
-    <div class="stat" style="margin:12px 0">
-      <div class="chip green">เข้างานแล้ว: <b id="sCheckedIn">0</b> คน</div>
-      <div class="chip yellow">พักอยู่: <b id="sOnBreak">0</b> คน</div>
-      <div class="chip red">ออกงานแล้ว: <b id="sCheckedOut">0</b> คน</div>
-      <div class="chip">ในพื้นที่: <b id="sInArea">0</b> คน</div>
+    <!-- ตัวนับจำนวนครั้งวันนี้ -->
+    <div class="row counter">
+      <span class="note">จำนวนครั้งที่กดพัก (วันนี้):</span>
+      <span class="pill">ทานข้าว: <strong id="c-lunch">0</strong></span>
+      <span class="pill">สูบบุหรี่: <strong id="c-smoke">0</strong></span>
+      <span class="pill">เข้าห้องน้ำ: <strong id="c-toilet">0</strong></span>
+    </div>
+    <div id="breakTimer" class="timer"></div>
+
+    <div class="hr"></div>
+
+    <div class="row btns">
+      <button class="primary" onclick="send('checkin')">เข้างาน</button>
+      <button onclick="send('checkout')">ออกงาน</button>
+    </div>
+    <div class="row btns">
+      <button onclick="send('lunch')">ทานข้าว</button>
+      <button onclick="send('smoke_start')">สูบบุหรี่</button>
+      <button onclick="send('toilet_start')">เข้าห้องน้ำ</button>
+      <button onclick="send('break_back')">กลับจากพัก</button>
     </div>
 
-    <!-- Chart -->
-    <div class="cardLight">
-      <canvas id="barChart" height="130"></canvas>
-    </div>
-
-    <!-- Table -->
-    <div class="cardLight">
-      <div class="note" style="margin-bottom:6px">ดับเบิลคลิกที่แถวเพื่อใส่หมายเหตุ/เลือกทำแทน</div>
-      <table id="mTable">
-        <thead>
-          <tr>
-            <th>วันที่</th><th>เผ่า</th><th>รหัส</th><th>ชื่อพนักงาน</th>
-            <th>เข้างาน</th><th>ออกพัก</th><th>กลับจากพัก</th><th>ออกงาน</th>
-            <th>รวมเวลางาน</th><th>อยู่ในพื้นที่</th><th>หมายเหตุ</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <!-- Remark -->
-      <div class="remarkBox" style="margin-top:10px">
-        <input id="remarkEmp" placeholder="รหัสพนักงานที่จะใส่หมายเหตุ" style="flex:0 0 220px">
-        <input id="remarkText" placeholder="เหตุผล/คำอธิบาย" style="flex:1">
-        <button class="btn btnPrimary" onclick="saveRemark()">บันทึกหมายเหตุ</button>
-      </div>
-      <div id="mMsg" class="note" style="margin-top:6px;color:#0f766e"></div>
+    <div class="foot">
+      * เงื่อนไขเวลา: ทานข้าวได้ 60 นาที / สูบบุหรี่–เข้าห้องน้ำ 20 นาที (เกินเวลายังไม่กลับจากพัก = เข้าสาย)
     </div>
   </div>
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const BASE_API   = 'https://YOUR-N8N-DOMAIN'; // เปลี่ยนเป็นโดเมน n8n ของคุณ
-const API_LOOKUP = BASE_API + '/api/lookup-employee';
-const API_EMP    = BASE_API + '/api/employee-event';
-const API_MGR    = BASE_API + '/api/manager-daily';
-const API_REMARK = BASE_API + '/api/manager-remark';
+  /* ===== CONFIG ===== */
+  const BASE_API   = 'https://YOUR-N8N-DOMAIN';         // TODO
+  const API_EMP    = BASE_API + '/api/employee-event';  // POST event
+  const API_LOOKUP = BASE_API + '/api/lookup-employee'; // สำหรับเติมชื่อ/เผ่าอัตโนมัติถ้าต้องการ
 
-/* ============== Utils ============== */
-function todayLocal(){
-  const now = new Date();
-  const tz  = new Date(now.getTime() - now.getTimezoneOffset()*60000);
-  const ymd = tz.toISOString().slice(0,10);
-  const [y,m,d] = ymd.split('-');
-  return { iso: ymd, display: `${d}/${m}/${y}` };
-}
-document.getElementById('today').textContent = todayLocal().display;
+  /* ===== USER FROM LOGIN ===== */
+  let CURRENT_USER = null;
+  try { CURRENT_USER = JSON.parse(localStorage.getItem('currentUser')||'null'); } catch {}
 
-function getPos(){
-  return new Promise((res,rej)=>{
-    if(!navigator.geolocation) return rej(new Error('no gps'));
-    navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
-      rej,{ enableHighAccuracy:true, timeout:15000 }
-    );
-  });
-}
-function nowISO(){ return new Date().toISOString(); }
+  /* ===== Date ===== */
+  function todayLocal(){
+    const now = new Date();
+    const tz  = new Date(now.getTime()-now.getTimezoneOffset()*60000);
+    const ymd = tz.toISOString().slice(0,10);
+    const [y,m,d]=ymd.split('-');
+    return {iso:ymd, display:`${d}/${m}/${y}`};
+  }
+  document.getElementById('today').textContent = todayLocal().display;
 
-/* ============== State ============== */
-let CURRENT_USER = { id:'', name:'', role:'employee', tribe:'' };
-let chart;
-
-/* ============== LOGIN ============== */
-async function doLogin(){
-  const id = document.getElementById('loginEmpId').value.trim();
-  const msg = document.getElementById('loginMsg');
-  if(!id){ msg.textContent = 'กรุณากรอกรหัสพนักงาน'; return; }
-  msg.textContent = 'กำลังตรวจสอบ...';
-  try{
-    const r = await fetch(`${API_LOOKUP}?employeeId=${encodeURIComponent(id)}`);
-    if(!r.ok) throw new Error('lookup http '+r.status);
-    const data = await r.json(); // {role:'employee'|'manager', name:'...', tribe:'1'|'2'|'3'|'4'}
-    CURRENT_USER = { id, name:data.name||'', role:(data.role||'employee'), tribe:(data.tribe||'') };
-
-    // เตรียมหน้า employee
-    document.getElementById('empId').value = id;
-    if (data.tribe) {
-      const sel = document.getElementById('tribe');
-      const label = `เผ่า ${data.tribe}`;
-      for (const op of sel.options){ if(op.value===label) sel.value=label; }
+  /* ===== Prefill from login ===== */
+  if(CURRENT_USER){
+    document.getElementById('empId').value = CURRENT_USER.id||'';
+    if(CURRENT_USER.tribe){
+      const t=`เผ่า ${CURRENT_USER.tribe}`;
+      for(const op of document.getElementById('tribe').options){ if(op.value===t) document.getElementById('tribe').value=t; }
     }
-    renderCtr(id);
+  }
 
-    // สลับวิว
-    document.getElementById('login').classList.add('hidden');
-    if(CURRENT_USER.role === 'manager'){
-      document.body.className = 'manager';
-      document.getElementById('manView').classList.remove('hidden');
-      document.getElementById('mDate').value = todayLocal().iso;
-      if (CURRENT_USER.tribe && ['1','2','3','4'].includes(String(CURRENT_USER.tribe))) {
-        document.getElementById('mTribe').value = String(CURRENT_USER.tribe);
-        document.getElementById('mEmpTribe').value = `เผ่า ${CURRENT_USER.tribe}`;
-      }
-      loadManager();
-    }else{
-      document.body.className = 'employee';
-      document.getElementById('empView').classList.remove('hidden');
+  /* ===== Counter (per day) ===== */
+  function key(emp){return `ctr:${emp}:${todayLocal().iso}`;}
+  function readCtr(emp){try{return JSON.parse(localStorage.getItem(key(emp)))||{lunch:0,smoke:0,toilet:0}}catch{return {lunch:0,smoke:0,toilet:0}}}
+  function writeCtr(emp,c){try{localStorage.setItem(key(emp), JSON.stringify(c))}catch{}}
+  function renderCtr(emp,fromServer){
+    let c = readCtr(emp);
+    if(fromServer){
+      if(typeof fromServer.LunchCount  === 'number') c.lunch  = fromServer.LunchCount;
+      if(typeof fromServer.SmokeCount  === 'number') c.smoke  = fromServer.SmokeCount;
+      if(typeof fromServer.ToiletCount === 'number') c.toilet = fromServer.ToiletCount;
+      writeCtr(emp,c);
     }
-  }catch(e){
-    msg.textContent = 'ไม่พบข้อมูลพนักงาน หรือเซิร์ฟเวอร์ไม่ตอบสนอง';
+    document.getElementById('c-lunch').textContent  = c.lunch;
+    document.getElementById('c-smoke').textContent  = c.smoke;
+    document.getElementById('c-toilet').textContent = c.toilet;
   }
-}
-
-/* ============== EMPLOYEE counters (local) ============== */
-function key(emp){ return `ctr:${emp}:${todayLocal().iso}`; }
-function readCtr(emp){ try{ return JSON.parse(localStorage.getItem(key(emp)))||{lunch:0,smoke:0,toilet:0}; }catch{ return {lunch:0,smoke:0,toilet:0}; } }
-function writeCtr(emp,c){ try{ localStorage.setItem(key(emp), JSON.stringify(c)); }catch{} }
-function renderCtr(emp, fromServer){
-  let c = readCtr(emp);
-  if(fromServer){
-    if(typeof fromServer.LunchCount  === 'number') c.lunch  = fromServer.LunchCount;
-    if(typeof fromServer.SmokeCount  === 'number') c.smoke  = fromServer.SmokeCount;
-    if(typeof fromServer.ToiletCount === 'number') c.toilet = fromServer.ToiletCount;
-    writeCtr(emp, c);
-  }
-  document.getElementById('c-lunch').textContent  = c.lunch;
-  document.getElementById('c-smoke').textContent  = c.smoke;
-  document.getElementById('c-toilet').textContent = c.toilet;
-}
-document.getElementById('empId').addEventListener('input', e=>{
-  const id = e.target.value.trim();
-  if(id) renderCtr(id);
-});
-function setStatus(color,text){
-  const el = document.getElementById('status'); el.className='status';
-  if(color==='green') el.classList.add('s-green');
-  else if(color==='yellow') el.classList.add('s-yellow');
-  else if(color==='red') el.classList.add('s-red');
-  el.textContent = text || color || '—';
-}
-function setMsg(ok, text){
-  const el = document.getElementById('msg');
-  el.className = 'note ' + (ok ? 'ok' : 'err');
-  el.textContent = text || '';
-}
-
-/* ============== Unified sender ============== */
-async function sendEvent({ employeeId, tribe, action, actorRole, actorId, proxyReason }) {
-  let pos;
-  try { pos = await getPos(); } catch { throw new Error('ต้องอนุญาตตำแหน่ง (GPS)'); }
-  const payload = {
-    employeeId, tribe, action,
-    lat: pos.lat, lng: pos.lng,
-    clientTimeISO: nowISO(),
-    dateLocal: todayLocal().iso,
-    actorRole: actorRole || 'employee',
-    actorId: actorId || employeeId,
-    proxyReason: proxyReason || ''
-  };
-  const r = await fetch(API_EMP,{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
+  document.getElementById('empId').addEventListener('input',e=>{
+    const id=e.target.value.trim(); if(id) renderCtr(id);
   });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data?.message || 'HTTP ' + r.status);
-  if (!data.allowed) throw new Error(data.reason || 'ไม่ผ่านเงื่อนไข');
-  return data;
-}
 
-/* ============== Employee: send() ============== */
-async function send(action){
-  const employeeId = document.getElementById('empId').value.trim();
-  const tribe = document.getElementById('tribe').value;
-  if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
-  if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
-
-  setMsg(true,'กำลังส่งข้อมูล…');
-  try{
-    const data = await sendEvent({ employeeId, tribe, action, actorRole:'employee', actorId:employeeId });
-    setStatus(data.statusColor || '', data.statusColor || '—');
-    setMsg(true, data.message || 'บันทึกสำเร็จ');
-    const srv = { LunchCount:data.row?.LunchCount, SmokeCount:data.row?.SmokeCount, ToiletCount:data.row?.ToiletCount };
-    if(['lunch','smoke_start','toilet_start'].includes(action) &&
-       !Object.values(srv).some(v => typeof v === 'number')){
-      const c = readCtr(employeeId);
-      if(action==='lunch') c.lunch++;
-      if(action==='smoke_start') c.smoke++;
-      if(action==='toilet_start') c.toilet++;
-      writeCtr(employeeId, c); renderCtr(employeeId);
-    }else{ renderCtr(employeeId, srv); }
-  }catch(e){
-    setMsg(false, (e.message||e));
-    setStatus('red','ผิดพลาด');
+  /* ===== Status / Message ===== */
+  function setStatus(color,text){
+    const el=document.getElementById('status'); el.className='status';
+    if(color==='green') el.classList.add('s-green');
+    else if(color==='yellow') el.classList.add('s-yellow');
+    else if(color==='red') el.classList.add('s-red');
+    el.textContent=text||color||'—';
   }
-}
-
-/* ============== Manager: sendFor() ============== */
-async function sendFor(action){
-  const mode = document.getElementById('mMode').value;
-  const msg  = document.getElementById('mActionMsg');
-  const reason = (document.getElementById('mReason').value||'').trim();
-  let employeeId, tribe;
-
-  if(mode === 'self'){
-    if(!CURRENT_USER?.id){ msg.textContent='ไม่พบรหัสหัวหน้าที่ล็อกอิน'; msg.style.color='#dc2626'; return; }
-    employeeId = CURRENT_USER.id;
-    tribe = document.getElementById('mEmpTribe').value || 'เผ่า 1';
-  }else{
-    employeeId = (document.getElementById('mEmp').value||'').trim();
-    tribe = document.getElementById('mEmpTribe').value;
-    if(!employeeId){ msg.textContent='กรุณากรอกรหัสพนักงาน'; msg.style.color='#dc2626'; return; }
-    if(!reason || reason.length < 4){ msg.textContent='ต้องใส่เหตุผลอย่างน้อย 4 ตัวอักษร'; msg.style.color='#dc2626'; return; }
+  function setMsg(ok,text){
+    const el=document.getElementById('msg'); el.className='note '+(ok?'ok':'err'); el.textContent=text||'';
   }
 
-  msg.textContent = 'กำลังส่งข้อมูล...'; msg.style.color = '#0f766e';
-  try{
-    const data = await sendEvent({
-      employeeId, tribe, action,
-      actorRole:'manager', actorId:CURRENT_USER.id, proxyReason: reason
-    });
-    msg.textContent = data.message || 'บันทึกสำเร็จ';
-    await loadManager();
-  }catch(e){
-    msg.textContent = 'ผิดพลาด: ' + (e.message||e);
-    msg.style.color = '#dc2626';
-  }
-}
+  /* ===== GPS ===== */
+  function getPos(){return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej(new Error('อุปกรณ์ไม่รองรับ GPS'));
+    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),rej,{enableHighAccuracy:true,timeout:15000});
+  })}
 
-/* ============== Manager: load / table / chart / remark ============== */
-async function loadManager(){
-  const date = document.getElementById('mDate').value || todayLocal().iso;
-  const tribe = document.getElementById('mTribe').value;
-  const q = new URLSearchParams({ date, ...(tribe?{tribe}:{}) }).toString();
-  const r = await fetch(`${API_MGR}?${q}`);
-  const data = await r.json();
-
-  // cards
-  document.getElementById('sCheckedIn').textContent  = data.summary?.checkedIn || 0;
-  document.getElementById('sOnBreak').textContent    = data.summary?.onBreak || 0;
-  document.getElementById('sCheckedOut').textContent = data.summary?.checkedOut || 0;
-  document.getElementById('sInArea').textContent     = data.summary?.inArea || 0;
-
-  // table
-  const tb = document.querySelector('#mTable tbody'); tb.innerHTML='';
-  (data.rows||[]).forEach(row=>{
-    const tr = document.createElement('tr');
-    const warn = (row.workTotalMin||0) < 480 ? ' style="color:#b91c1c;font-weight:600"' : '';
-    tr.innerHTML = `
-      <td>${row.date||''}</td>
-      <td>${row.tribe||''}</td>
-      <td>${row.employeeId||''}</td>
-      <td>${row.name||''}</td>
-      <td>${row.checkIn||''}</td>
-      <td>${row.break||''}</td>
-      <td>${row.back||''}</td>
-      <td>${row.checkOut||''}</td>
-      <td${warn}>${row.totalWork || row.workTotalHM || ''}</td>
-      <td>${row.inArea?'<span class="badge b-green">ในพื้นที่</span>':'<span class="badge b-red">นอกพื้นที่</span>'}</td>
-      <td>${row.remark||''}</td>`;
-    tr.ondblclick = ()=>{
-      document.getElementById('remarkEmp').value = row.employeeId||'';
-      document.getElementById('mEmp').value = row.employeeId||'';
-      if(row.tribe){ document.getElementById('mEmpTribe').value = (String(row.tribe).startsWith('เผ่า')?row.tribe:`เผ่า ${row.tribe}`); }
-      document.getElementById('remarkText').focus();
+  /* ===== Break Timer (client reminder 60/20) ===== */
+  let breakDeadline = 0, breakTicker=null, breakType='';
+  function startBreakTimer(type){
+    clearInterval(breakTicker);
+    breakType = type;
+    const limitMin = (type==='lunch')?60:20; // ✅ ตามเงื่อนไข
+    breakDeadline = Date.now() + limitMin*60*1000;
+    const box = document.getElementById('breakTimer');
+    const paint = ()=>{
+      const remain = Math.max(0, breakDeadline - Date.now());
+      const mm = Math.floor(remain/60000), ss=Math.floor((remain%60000)/1000);
+      box.textContent = `กำลังพัก (${type==='lunch'?'ทานข้าว 60 นาที':'20 นาที'}): เหลือเวลา ${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
+      if(remain<=0){ clearInterval(breakTicker); alert('ครบเวลาพักแล้ว กรุณากด "กลับจากพัก"'); box.textContent='ครบเวลาพักแล้ว'; }
     };
-    tb.appendChild(tr);
-  });
-
-  // chart
-  const hours = Object.keys(data.byHour||{}).sort();
-  const inArr    = hours.map(h=> (data.byHour[h]?.in)||0 );
-  const breakArr = hours.map(h=> (data.byHour[h]?.break)||0 );
-  const outArr   = hours.map(h=> (data.byHour[h]?.out)||0 );
-  const ctx = document.getElementById('barChart');
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type:'bar',
-    data:{labels:hours, datasets:[
-      {label:'เข้างาน', data:inArr},
-      {label:'พัก', data:breakArr},
-      {label:'ออกงาน', data:outArr}
-    ]},
-    options:{responsive:true,plugins:{legend:{position:'top'}},scales:{x:{stacked:false},y:{beginAtZero:true}}}
-  });
-}
-
-async function saveRemark(){
-  const employeeId = (document.getElementById('remarkEmp').value||'').trim();
-  const remark = (document.getElementById('remarkText').value||'').trim();
-  const dateLocal = document.getElementById('mDate').value || todayLocal().iso;
-  const managerId = CURRENT_USER.id || 'manager';
-  const msg = document.getElementById('mMsg');
-  if(!employeeId || !remark){ msg.textContent='กรุณากรอกรหัสพนักงานและหมายเหตุ'; msg.style.color='#dc2626'; return; }
-  msg.textContent='กำลังบันทึก...'; msg.style.color='#0f766e';
-  try{
-    const r = await fetch(API_REMARK,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ dateLocal, employeeId, remark, managerId })
-    });
-    const data = await r.json();
-    if(!r.ok || data.ok===false){ throw new Error(data.message||'บันทึกไม่สำเร็จ'); }
-    msg.textContent='บันทึกเรียบร้อย'; document.getElementById('remarkText').value='';
-    loadManager();
-  }catch(e){
-    msg.textContent = 'ผิดพลาด: ' + (e.message||e);
-    msg.style.color='#dc2626';
+    paint();
+    breakTicker = setInterval(paint, 1000);
   }
-}
+  function stopBreakTimer(){
+    clearInterval(breakTicker);
+    breakTicker=null; breakDeadline=0; breakType='';
+    document.getElementById('breakTimer').textContent='';
+  }
+
+  /* ===== SEND EVENT ===== */
+  function nowISO(){return new Date().toISOString();}
+  async function send(action){
+    const employeeId=(document.getElementById('empId').value||'').trim();
+    const tribe=document.getElementById('tribe').value;
+    if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
+    if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
+
+    setMsg(true,'กำลังขอตำแหน่ง…');
+    let pos; try{ pos = await getPos(); }catch(e){ setMsg(false,'ต้องอนุญาตตำแหน่ง (GPS)'); return; }
+
+    setMsg(true,'กำลังส่งข้อมูล…');
+    try{
+      const payload={
+        employeeId, tribe, action,
+        lat:pos.lat, lng:pos.lng,
+        clientTimeISO: nowISO(),
+        dateLocal: todayLocal().iso,
+        actorRole:'employee', actorId:employeeId
+      };
+      const r=await fetch(API_EMP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await r.json();
+
+      if(!r.ok || !data.allowed){ setStatus('red','ไม่อนุญาต'); setMsg(false, data.reason||'ผิดพลาด'); return; }
+
+      setStatus(data.statusColor||'', data.statusColor||'—');
+      setMsg(true, data.message || 'บันทึกสำเร็จ');
+
+      // ตัวนับฝั่ง client ถ้า server ไม่ส่ง count กลับ
+      const srv={LunchCount:data.row?.LunchCount, SmokeCount:data.row?.SmokeCount, ToiletCount:data.row?.ToiletCount};
+      if(['lunch','smoke_start','toilet_start'].includes(action) &&
+         !Object.values(srv).some(v=>typeof v==='number')){
+        const c = readCtr(employeeId);
+        if(action==='lunch') c.lunch++;
+        if(action==='smoke_start') c.smoke++;
+        if(action==='toilet_start') c.toilet++;
+        writeCtr(employeeId,c); renderCtr(employeeId);
+      }else{
+        renderCtr(employeeId,srv);
+      }
+
+      // จัดการจับเวลาเตือนฝั่ง client
+      if(['lunch','smoke_start','toilet_start'].includes(action)) startBreakTimer(action);
+      if(action==='break_back' || action==='checkout') stopBreakTimer();
+
+    }catch(e){
+      setMsg(false,'ส่งไม่สำเร็จ: '+(e.message||e));
+      setStatus('red','ผิดพลาด');
+    }
+  }
+
+  // แสดง counter ทันทีเมื่อเปิด
+  (function init(){
+    const id = document.getElementById('empId').value.trim();
+    if(id) renderCtr(id);
+  })();
 </script>
 </body>
 </html>
