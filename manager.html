@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="th">
 <head>
 <meta charset="utf-8">
@@ -43,24 +43,43 @@
     <div><label>วันที่</label><input id="fDate" type="date"></div>
     <div>
       <label>เผ่า</label>
-      <select id="fTribe"><option value="">ทั้งหมด</option><option value="1">เผ่า 1</option><option value="2">เผ่า 2</option><option value="3">เผ่า 3</option><option value="4">เผ่า 4</option></select>
+      <select id="fTribe">
+        <option value="">ทั้งหมด</option>
+        <option value="1">เผ่า 1</option><option value="2">เผ่า 2</option>
+        <option value="3">เผ่า 3</option><option value="4">เผ่า 4</option>
+      </select>
     </div>
     <div style="flex:1 1 220px"><label>ค้นหา (รหัส/ชื่อ)</label><input id="fSearch" placeholder="เช่น 100234 หรือชื่อ"></div>
     <div>
       <label>สถานะ</label>
-      <select id="fStatus"><option value="">ทั้งหมด</option><option value="red">สีแดง</option><option value="yellow">สีส้ม/เหลือง</option><option value="green">สีเขียว</option></select>
+      <select id="fStatus">
+        <option value="">ทั้งหมด</option>
+        <option value="red">สีแดง</option>
+        <option value="yellow">สีส้ม/เหลือง</option>
+        <option value="green">สีเขียว</option>
+      </select>
     </div>
     <div>
       <label>อยู่ในพื้นที่</label>
-      <select id="fArea"><option value="">ทั้งหมด</option><option value="1">ในพื้นที่</option><option value="0">นอกพื้นที่</option></select>
+      <select id="fArea">
+        <option value="">ทั้งหมด</option>
+        <option value="1">ในพื้นที่</option>
+        <option value="0">นอกพื้นที่</option>
+      </select>
     </div>
     <div>
       <label>เฉพาะเวรของฉัน</label>
-      <select id="fAssigned"><option value="0">ไม่จำกัด</option><option value="1">เฉพาะมอบหมาย</option></select>
+      <select id="fAssigned">
+        <option value="0">ไม่จำกัด</option>
+        <option value="1">เฉพาะมอบหมาย</option>
+      </select>
     </div>
     <div>
       <label>เฉพาะเข้าทำงานสาย</label>
-      <select id="fLate"><option value="">ทั้งหมด</option><option value="1">เฉพาะคนสาย</option></select>
+      <select id="fLate">
+        <option value="">ทั้งหมด</option>
+        <option value="1">เฉพาะคนสาย</option>
+      </select>
     </div>
     <button class="btn btnPrimary" onclick="loadView()">ค้นหา</button>
   </div>
@@ -75,7 +94,12 @@
   <div class="card">
     <h3 style="margin-top:0">ลงเวลา (หัวหน้า/ทำแทนพนักงาน)</h3>
     <div class="flex">
-      <div><label>โหมด</label><select id="mMode"><option value="self">ฉัน (หัวหน้า)</option><option value="proxy">ทำแทนพนักงาน</option></select></div>
+      <div><label>โหมด</label>
+        <select id="mMode">
+          <option value="self">ฉัน (หัวหน้า)</option>
+          <option value="proxy">ทำแทนพนักงาน</option>
+        </select>
+      </div>
       <div><label>รหัสพนักงาน</label><input id="mEmp" placeholder="ดับเบิลคลิกที่แถวเพื่อเลือก"></div>
       <div>
         <label>เผ่า</label>
@@ -135,11 +159,10 @@
 </div>
 
 <script>
-  /* ===== เชื่อม n8n ด้วย Webhooks =====
-     ใส่ URL ให้ครบทั้ง 3 ตัวนี้ */
-  const WEBHOOK_MGR    = 'https://YOUR-N8N-DOMAIN/webhook/manager-daily';  // GET ?date=YYYY-MM-DD&tribe=1
-  const WEBHOOK_EMP    = 'https://YOUR-N8N-DOMAIN/webhook/employee-event'; // POST
-  const WEBHOOK_REMARK = 'https://YOUR-N8N-DOMAIN/webhook/manager-remark'; // POST
+  /* ===== เชื่อม n8n ด้วย Webhooks (ทดสอบ) ===== */
+  const WEBHOOK_MGR    = 'http://localhost:5678/webhook-test/manager-daily';   // GET ?date=YYYY-MM-DD&tribe=1
+  const WEBHOOK_EMP    = 'http://localhost:5678/webhook-test/employee-event';  // POST
+  const WEBHOOK_REMARK = 'http://localhost:5678/webhook-test/manager-remark';  // POST
 
   /* ===== Current user (จาก index/login) ===== */
   let CURRENT_USER=null;
@@ -188,6 +211,7 @@
     const date=document.getElementById('fDate').value||todayISO();
     const tribe=document.getElementById('fTribe').value;
     const url = `${WEBHOOK_MGR}?${new URLSearchParams({date, ...(tribe?{tribe}:{})})}`;
+
     const r=await fetch(url);
     const data=await r.json();
 
@@ -293,7 +317,11 @@
     // ✅ อนุญาตเฉพาะเผ่าที่มอบหมาย
     const tribeNum=String(tribe.replace('เผ่า','').trim());
     const asg=(CURRENT_USER?.assignedTribes||[]).map(String);
-    if(!asg.length || !asg.includes(tribeNum)){ msg.textContent=`วันนี้คุณไม่ได้รับมอบหมายดูแลเผ่า ${tribeNum}`; msg.style.color='#dc2626'; return; }
+    if(!asg.length || !asg.includes(tribeNum)){
+      msg.textContent=`วันนี้คุณไม่ได้รับมอบหมายดูแลเผ่า ${tribeNum}`;
+      msg.style.color='#dc2626'; 
+      return;
+    }
 
     msg.textContent='กำลังส่ง...'; msg.style.color='#0f766e';
     try{
@@ -311,8 +339,12 @@
       const r=await fetch(WEBHOOK_EMP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const data=await r.json();
       if(!r.ok || !data.allowed) throw new Error(data.reason||data.message||('HTTP '+r.status));
-      msg.textContent=data.message||'สำเร็จ'; loadView();
-    }catch(e){ msg.textContent='ผิดพลาด: '+(e.message||e); msg.style.color='#dc2626'; }
+      msg.textContent=data.message||'สำเร็จ'; 
+      loadView();
+    }catch(e){ 
+      msg.textContent='ผิดพลาด: '+(e.message||e); 
+      msg.style.color='#dc2626'; 
+    }
   }
 
   async function saveRemark(){
@@ -320,19 +352,31 @@
     const remark=(document.getElementById('rTxt').value||'').trim();
     const dateLocal=document.getElementById('fDate').value||todayISO();
     const msg=document.getElementById('msg');
-    if(!employeeId || !remark){ msg.textContent='กรุณารหัสพนักงานและหมายเหตุ'; msg.style.color='#dc2626'; return; }
+    if(!employeeId || !remark){
+      msg.textContent='กรุณารหัสพนักงานและหมายเหตุ';
+      msg.style.color='#dc2626'; 
+      return;
+    }
     msg.textContent='กำลังบันทึก...'; msg.style.color='#0f766e';
     try{
       const r=await fetch(WEBHOOK_REMARK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dateLocal,employeeId,remark,managerId:CURRENT_USER.id})});
       const data=await r.json();
       if(!r.ok || data.ok===false) throw new Error(data.message||'บันทึกไม่สำเร็จ');
-      msg.textContent='บันทึกแล้ว'; document.getElementById('rTxt').value=''; loadView();
-    }catch(e){ msg.textContent='ผิดพลาด: '+(e.message||e); msg.style.color='#dc2626'; }
+      msg.textContent='บันทึกแล้ว'; 
+      document.getElementById('rTxt').value=''; 
+      loadView();
+    }catch(e){ 
+      msg.textContent='ผิดพลาด: '+(e.message||e); 
+      msg.style.color='#dc2626'; 
+    }
   }
 
-  // live filter
-  ['fSearch','fStatus','fArea','fAssigned','fLate','fTribe','fDate'].forEach(id=>document.getElementById(id).addEventListener('change',loadView));
-  document.getElementById('fSearch').addEventListener('input',()=>{clearTimeout(window._t); window._t=setTimeout(loadView,300);});
+  // live filter bindings
+  ['fSearch','fStatus','fArea','fAssigned','fLate','fTribe','fDate']
+    .forEach(id=>document.getElementById(id).addEventListener('change',loadView));
+  document.getElementById('fSearch').addEventListener('input',()=>{
+    clearTimeout(window._t); window._t=setTimeout(loadView,300);
+  });
 
   // load first time
   loadView();
