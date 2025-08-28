@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="th">
 <head>
   <meta charset="utf-8">
@@ -95,12 +95,11 @@
 </div>
 
 <script>
-  /* ===== CONFIG ===== */
-  const BASE_API   = 'https://YOUR-N8N-DOMAIN';         // TODO
-  const API_EMP    = BASE_API + '/api/employee-event';  // POST event
-  const API_LOOKUP = BASE_API + '/api/lookup-employee'; // สำหรับเติมชื่อ/เผ่าอัตโนมัติถ้าต้องการ
+  /* ====== ตั้งค่า Webhook ของ n8n ======
+     👉 เอา URL จาก Node Webhook (Production URL) มาใส่ตรงนี้ */
+  const WEBHOOK_URL = 'http://localhost:5678/webhook/PUT-YOUR-WEBHOOK-ID-HERE';
 
-  /* ===== USER FROM LOGIN ===== */
+  /* ===== USER FROM LOGIN (ถ้ามี) ===== */
   let CURRENT_USER = null;
   try { CURRENT_USER = JSON.parse(localStorage.getItem('currentUser')||'null'); } catch {}
 
@@ -119,7 +118,9 @@
     document.getElementById('empId').value = CURRENT_USER.id||'';
     if(CURRENT_USER.tribe){
       const t=`เผ่า ${CURRENT_USER.tribe}`;
-      for(const op of document.getElementById('tribe').options){ if(op.value===t) document.getElementById('tribe').value=t; }
+      for(const op of document.getElementById('tribe').options){
+        if(op.value===t) document.getElementById('tribe').value=t;
+      }
     }
   }
 
@@ -158,7 +159,11 @@
   /* ===== GPS ===== */
   function getPos(){return new Promise((res,rej)=>{
     if(!navigator.geolocation) return rej(new Error('อุปกรณ์ไม่รองรับ GPS'));
-    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),rej,{enableHighAccuracy:true,timeout:15000});
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
+      rej,
+      {enableHighAccuracy:true,timeout:15000}
+    );
   })}
 
   /* ===== Break Timer (client reminder 60/20) ===== */
@@ -173,7 +178,11 @@
       const remain = Math.max(0, breakDeadline - Date.now());
       const mm = Math.floor(remain/60000), ss=Math.floor((remain%60000)/1000);
       box.textContent = `กำลังพัก (${type==='lunch'?'ทานข้าว 60 นาที':'20 นาที'}): เหลือเวลา ${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
-      if(remain<=0){ clearInterval(breakTicker); alert('ครบเวลาพักแล้ว กรุณากด "กลับจากพัก"'); box.textContent='ครบเวลาพักแล้ว'; }
+      if(remain<=0){
+        clearInterval(breakTicker);
+        alert('ครบเวลาพักแล้ว กรุณากด "กลับจากพัก"');
+        box.textContent='ครบเวลาพักแล้ว';
+      }
     };
     paint();
     breakTicker = setInterval(paint, 1000);
@@ -204,16 +213,25 @@
         dateLocal: todayLocal().iso,
         actorRole:'employee', actorId:employeeId
       };
-      const r=await fetch(API_EMP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const data=await r.json();
 
-      if(!r.ok || !data.allowed){ setStatus('red','ไม่อนุญาต'); setMsg(false, data.reason||'ผิดพลาด'); return; }
+      const r = await fetch(WEBHOOK_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json().catch(()=>({}));
 
-      setStatus(data.statusColor||'', data.statusColor||'—');
-      setMsg(true, data.message || 'บันทึกสำเร็จ');
+      if(!r.ok || (data && data.allowed===false)){
+        setStatus('red','ไม่อนุญาต');
+        setMsg(false, (data && data.reason) ? data.reason : 'ส่งข้อมูลไม่สำเร็จ');
+        return;
+      }
+
+      setStatus(data?.statusColor||'', data?.statusColor||'—');
+      setMsg(true, data?.message || 'บันทึกสำเร็จ');
 
       // ตัวนับฝั่ง client ถ้า server ไม่ส่ง count กลับ
-      const srv={LunchCount:data.row?.LunchCount, SmokeCount:data.row?.SmokeCount, ToiletCount:data.row?.ToiletCount};
+      const srv={LunchCount:data?.row?.LunchCount, SmokeCount:data?.row?.SmokeCount, ToiletCount:data?.row?.ToiletCount};
       if(['lunch','smoke_start','toilet_start'].includes(action) &&
          !Object.values(srv).some(v=>typeof v==='number')){
         const c = readCtr(employeeId);
