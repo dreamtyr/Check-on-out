@@ -135,18 +135,21 @@
 </div>
 
 <script>
-  /* ===== CONFIG ===== */
-  const BASE_API   = 'https://YOUR-N8N-DOMAIN';             // TODO
-  const API_MGR    = BASE_API + '/api/manager-daily';       // ?date=&tribe=
-  const API_EMP    = BASE_API + '/api/employee-event';      // POST
-  const API_REMARK = BASE_API + '/api/manager-remark';      // POST {dateLocal,employeeId,remark,managerId}
+  /* ===== เชื่อม n8n ด้วย Webhooks =====
+     ใส่ URL ให้ครบทั้ง 3 ตัวนี้ */
+  const WEBHOOK_MGR    = 'https://YOUR-N8N-DOMAIN/webhook/manager-daily';  // GET ?date=YYYY-MM-DD&tribe=1
+  const WEBHOOK_EMP    = 'https://YOUR-N8N-DOMAIN/webhook/employee-event'; // POST
+  const WEBHOOK_REMARK = 'https://YOUR-N8N-DOMAIN/webhook/manager-remark'; // POST
 
-  /* ===== Current user (from index) ===== */
+  /* ===== Current user (จาก index/login) ===== */
   let CURRENT_USER=null;
   try { CURRENT_USER = JSON.parse(localStorage.getItem('currentUser')||'null'); } catch {}
   if(!CURRENT_USER){ location.href='index.html'; }
 
-  function todayISO(){const n=new Date(); const tz=new Date(n.getTime()-n.getTimezoneOffset()*60000); return tz.toISOString().slice(0,10);}
+  function todayISO(){
+    const n=new Date(); const tz=new Date(n.getTime()-n.getTimezoneOffset()*60000);
+    return tz.toISOString().slice(0,10);
+  }
 
   // init filter date + scope chips
   document.getElementById('fDate').value=todayISO();
@@ -154,7 +157,14 @@
     const box=document.getElementById('scopeBox'); const list=document.getElementById('scopeList'); list.innerHTML='';
     const asg=(CURRENT_USER?.assignedTribes||[]).map(String);
     if(asg.length){
-      asg.forEach(t=>{ const b=document.createElement('span'); b.className='badge'; b.textContent=`เผ่า ${t}`; b.style.cursor='pointer'; b.onclick=()=>{document.getElementById('mTribe').value=`เผ่า ${t}`}; list.appendChild(b); });
+      asg.forEach(t=>{
+        const b=document.createElement('span');
+        b.className='badge';
+        b.textContent=`เผ่า ${t}`;
+        b.style.cursor='pointer';
+        b.onclick=()=>{document.getElementById('mTribe').value=`เผ่า ${t}`};
+        list.appendChild(b);
+      });
       box.style.display='block';
     }
   })();
@@ -177,7 +187,8 @@
   async function loadView(){
     const date=document.getElementById('fDate').value||todayISO();
     const tribe=document.getElementById('fTribe').value;
-    const r=await fetch(`${API_MGR}?${new URLSearchParams({date, ...(tribe?{tribe}:{})})}`);
+    const url = `${WEBHOOK_MGR}?${new URLSearchParams({date, ...(tribe?{tribe}:{})})}`;
+    const r=await fetch(url);
     const data=await r.json();
 
     // summary
@@ -227,8 +238,22 @@
     // follow-up chips
     const fuRows=rows.filter(r=>['red','yellow','orange'].includes(rowColor(r)));
     const fuBox=document.getElementById('fuBox'); const fu=document.getElementById('fu'); fu.innerHTML='';
-    if(fuRows.length){ fuBox.style.display='block'; fuRows.forEach(r=>{const s=document.createElement('span'); s.className='badge '+(rowColor(r)==='red'?'b-red':'b-yellow'); s.textContent=`${r.employeeId||''} - ${r.name||''}`; s.style.cursor='pointer'; s.onclick=()=>{document.getElementById('mEmp').value=r.employeeId||''; document.getElementById('mTribe').value=(String(r.tribe).startsWith('เผ่า')?`เผ่า ${r.tribe}`:`เผ่า ${r.tribe}`)}; fu.appendChild(s);}); }
-    else{ fuBox.style.display='none'; }
+    if(fuRows.length){
+      fuBox.style.display='block';
+      fuRows.forEach(r=>{
+        const s=document.createElement('span');
+        s.className='badge '+(rowColor(r)==='red'?'b-red':'b-yellow');
+        s.textContent=`${r.employeeId||''} - ${r.name||''}`;
+        s.style.cursor='pointer';
+        s.onclick=()=>{
+          document.getElementById('mEmp').value=r.employeeId||'';
+          document.getElementById('mTribe').value=(String(r.tribe).startsWith('เผ่า')?`เผ่า ${r.tribe}`:`เผ่า ${r.tribe}`);
+        };
+        fu.appendChild(s);
+      });
+    }else{
+      fuBox.style.display='none';
+    }
 
     // table
     const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
@@ -241,7 +266,12 @@
         <td>${row.date||''}</td><td>${row.tribe||''}</td><td>${row.employeeId||''}</td><td>${row.name||''}</td>
         <td>${row.checkIn||''}</td><td>${row.break||''}</td><td>${row.back||''}</td><td>${row.checkOut||''}</td>
         <td${warn}>${row.totalWork||row.workTotalHM||''}</td><td>${badge}</td><td>${row.remark||''}</td>`;
-      tr.ondblclick=()=>{document.getElementById('rEmp').value=row.employeeId||''; document.getElementById('mEmp').value=row.employeeId||''; document.getElementById('mTribe').value=(String(row.tribe).startsWith('เผ่า')?row.tribe:`เผ่า ${row.tribe}`); document.getElementById('rTxt').focus();}
+      tr.ondblclick=()=>{
+        document.getElementById('rEmp').value=row.employeeId||'';
+        document.getElementById('mEmp').value=row.employeeId||'';
+        document.getElementById('mTribe').value=(String(row.tribe).startsWith('เผ่า')?row.tribe:`เผ่า ${row.tribe}`);
+        document.getElementById('rTxt').focus();
+      }
       tb.appendChild(tr);
     });
 
@@ -260,17 +290,25 @@
       if(!reason || reason.length<4){ msg.textContent='กรุณาระบุเหตุผลอย่างน้อย 4 ตัวอักษร'; msg.style.color='#dc2626'; return; }
     }
 
-    // ✅ บังคับทำได้เฉพาะเผ่าที่ได้รับมอบหมายวันนี้
+    // ✅ อนุญาตเฉพาะเผ่าที่มอบหมาย
     const tribeNum=String(tribe.replace('เผ่า','').trim());
     const asg=(CURRENT_USER?.assignedTribes||[]).map(String);
     if(!asg.length || !asg.includes(tribeNum)){ msg.textContent=`วันนี้คุณไม่ได้รับมอบหมายดูแลเผ่า ${tribeNum}`; msg.style.color='#dc2626'; return; }
 
     msg.textContent='กำลังส่ง...'; msg.style.color='#0f766e';
     try{
-      // เอา GPS จริง
-      const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),rej,{enableHighAccuracy:true,timeout:15000}));
-      const payload={employeeId, tribe, action, lat:pos.lat, lng:pos.lng, clientTimeISO:new Date().toISOString(), dateLocal:document.getElementById('fDate').value||todayISO(), actorRole:'manager', actorId:CURRENT_USER.id, proxyReason:reason};
-      const r=await fetch(API_EMP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      // ใช้ GPS จริง
+      const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(
+        p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),rej,{enableHighAccuracy:true,timeout:15000}
+      ));
+      const payload={
+        employeeId, tribe, action,
+        lat:pos.lat, lng:pos.lng,
+        clientTimeISO:new Date().toISOString(),
+        dateLocal:document.getElementById('fDate').value||todayISO(),
+        actorRole:'manager', actorId:CURRENT_USER.id, proxyReason:reason
+      };
+      const r=await fetch(WEBHOOK_EMP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const data=await r.json();
       if(!r.ok || !data.allowed) throw new Error(data.reason||data.message||('HTTP '+r.status));
       msg.textContent=data.message||'สำเร็จ'; loadView();
@@ -285,7 +323,7 @@
     if(!employeeId || !remark){ msg.textContent='กรุณารหัสพนักงานและหมายเหตุ'; msg.style.color='#dc2626'; return; }
     msg.textContent='กำลังบันทึก...'; msg.style.color='#0f766e';
     try{
-      const r=await fetch(API_REMARK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dateLocal,employeeId,remark,managerId:CURRENT_USER.id})});
+      const r=await fetch(WEBHOOK_REMARK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dateLocal,employeeId,remark,managerId:CURRENT_USER.id})});
       const data=await r.json();
       if(!r.ok || data.ok===false) throw new Error(data.message||'บันทึกไม่สำเร็จ');
       msg.textContent='บันทึกแล้ว'; document.getElementById('rTxt').value=''; loadView();
