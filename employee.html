@@ -1,262 +1,99 @@
-<!doctype html>  
+<!doctype html>
 <html lang="th">
 <head>
   <meta charset="utf-8">
   <title>ลงเวลาทำงาน (พนักงาน)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    :root{
-      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb;
-      --green-bg:#e8f5e9; --green:#1b5e20;
-      --yellow-bg:#fff8e1; --yellow:#7a5e00;
-      --red-bg:#ffebee; --red:#b71c1c;
-    }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    .wrap{max-width:760px;margin:32px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,.25)}
-    h1{font-size:22px;margin:0 0 8px}
-    .date{font-size:14px;color:#cbd5e1;margin-bottom:12px}
-    .sub{color:var(--muted);margin-bottom:18px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
-    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-    input,select{background:#0b1022;color:var(--text);border:1px solid #1e293b;border-radius:10px;padding:10px 12px;outline:none;width:100%}
-    .col{flex:1 1 220px}
-    .status{display:inline-block;border-radius:30px;padding:6px 10px;font-size:12px;margin-left:8px}
-    .s-green{background:var(--green-bg);color:var(--green)}
-    .s-yellow{background:var(--yellow-bg);color:var(--yellow)}
-    .s-red{background:var(--red-bg);color:var(--red)}
-    .btns button{border:1px solid #243045;background:#0b1022;color:#e5e7eb;border-radius:12px;padding:10px 14px;cursor:pointer}
-    .btns button:hover{transform:translateY(-1px)}
-    .primary{background:linear-gradient(180deg,#22c55e,#16a34a);border:none}
-    .note{font-size:12px;color:var(--muted);margin-top:8px}
-    .hr{height:1px;background:#1f2937;margin:18px 0}
-    .ok{color:#86efac}
-    .err{color:#fca5a5}
-    .foot{font-size:12px;color:#9ca3af;margin-top:10px}
-    .counter{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .pill{display:inline-block;padding:6px 10px;border:1px solid #243045;border-radius:999px;font-size:12px;background:#0b1022}
-    .timer{margin-top:8px;font-size:13px;color:#c7d2fe}
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <h1>ลงเวลาทำงาน</h1>
-    <div class="date">วันนี้: <strong id="today">--/--/----</strong></div>
-    <div class="sub">กรุณาเลือกเผ่า อนุญาต GPS แล้วกดปุ่มเพื่อเช็คอิน/เช็คเอาต์</div>
+    <div class="sub">วันที่ <b id="today">--/--/----</b> • ผู้ใช้: <b id="who">—</b></div>
 
     <div class="row">
-      <div class="col">
+      <div style="flex:1 1 220px">
         <label>รหัสพนักงาน</label>
-        <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
+        <input id="empId" readonly>
       </div>
-      <div class="col">
-        <label>เผ่า</label>
-        <select id="tribe">
-          <option value="เผ่า 1">เผ่า 1</option>
-          <option value="เผ่า 2">เผ่า 2</option>
-          <option value="เผ่า 3">เผ่า 3</option>
-          <option value="เผ่า 4">เผ่า 4</option>
-        </select>
+      <div style="flex:1 1 220px">
+        <label>เผ่า (ล็อกเฉพาะวันนี้)</label>
+        <input id="tribe" readonly>
       </div>
     </div>
 
-    <div class="row" style="align-items:center">
+    <div class="row" style="align-items:center;margin-top:8px">
       <div>สถานะ: <span id="status" class="status">—</span></div>
       <div id="msg" class="note"></div>
     </div>
 
-    <!-- ตัวนับจำนวนครั้งวันนี้ -->
-    <div class="row counter">
-      <span class="note">จำนวนครั้งที่กดพัก (วันนี้):</span>
-      <span class="pill">ทานข้าว: <strong id="c-lunch">0</strong></span>
-      <span class="pill">สูบบุหรี่: <strong id="c-smoke">0</strong></span>
-      <span class="pill">เข้าห้องน้ำ: <strong id="c-toilet">0</strong></span>
-    </div>
-    <div id="breakTimer" class="timer"></div>
-
     <div class="hr"></div>
 
-    <div class="row btns">
-      <button class="primary" onclick="send('checkin')">เข้างาน</button>
-      <button onclick="send('checkout')">ออกงาน</button>
+    <div class="row">
+      <button class="btn btnPrimary" onclick="send('checkin')">เข้างาน</button>
+      <button class="btn" onclick="send('checkout')">ออกงาน</button>
     </div>
-    <div class="row btns">
-      <button onclick="send('lunch')">ทานข้าว</button>
-      <button onclick="send('smoke_start')">สูบบุหรี่</button>
-      <button onclick="send('toilet_start')">เข้าห้องน้ำ</button>
-      <button onclick="send('break_back')">กลับจากพัก</button>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" onclick="send('lunch')">ทานข้าว</button>
+      <button class="btn" onclick="send('smoke_start')">สูบบุหรี่</button>
+      <button class="btn" onclick="send('toilet_start')">เข้าห้องน้ำ</button>
+      <button class="btn btnPrimary" onclick="send('break_back')">กลับจากพัก</button>
     </div>
 
-    <div class="foot">
-      * เงื่อนไขเวลา: ทานข้าวได้ 60 นาที / สูบบุหรี่–เข้าห้องน้ำ 20 นาที (เกินเวลายังไม่กลับจากพัก = เข้าสาย)
-    </div>
+    <div class="footer">* เงื่อนไขเวลา: ข้าว 60 นาที / สูบบุหรี่-ห้องน้ำ 20 นาที</div>
   </div>
 </div>
 
+<script src="common.js"></script>
 <script>
-  /* ====== ตั้งค่า Webhook ของ n8n ====== */
-  const WEBHOOK_URL = 'http://localhost:5678/webhook-test/employee-event';
+document.getElementById('today').textContent = todayLocal().display;
+const u = getCurrentUser();
+if(!u){ alert('กรุณาเข้าสู่ระบบ'); location.href='index.html'; }
+document.getElementById('who').textContent = `${u?.name||''} (${u?.id||''})`;
 
-  /* ===== USER FROM LOGIN (ถ้ามี) ===== */
-  let CURRENT_USER = null;
-  try { CURRENT_USER = JSON.parse(localStorage.getItem('currentUser')||'null'); } catch {}
+const locked = getLockedTribe(u.id, todayLocal().iso);
+if(!locked && u.role==='employee'){
+  alert('ยังไม่เลือกเผ่าวันนี้ กรุณากลับไปล็อกอินเพื่อเลือกเผ่า');
+  location.href='index.html';
+}
+document.getElementById('empId').value = u.id || '';
+document.getElementById('tribe').value = locked? `เผ่า ${locked}` : (u.role==='manager'?'— (ผู้จัดการ)':'—');
 
-  /* ===== Date ===== */
-  function todayLocal(){
-    const now = new Date();
-    const tz  = new Date(now.getTime()-now.getTimezoneOffset()*60000);
-    const ymd = tz.toISOString().slice(0,10);
-    const [y,m,d]=ymd.split('-');
-    return {iso:ymd, display:`${d}/${m}/${y}`};
-  }
-  document.getElementById('today').textContent = todayLocal().display;
+function setStatus(color,text){
+  const el=document.getElementById('status'); el.className='status';
+  if(color==='green') el.classList.add('s-green');
+  else if(color==='yellow') el.classList.add('s-yellow');
+  else if(color==='red') el.classList.add('s-red');
+  el.textContent=text||color||'—';
+}
+function setMsg(ok,text){
+  const el=document.getElementById('msg'); el.style.color=ok?'#86efac':'#fca5a5'; el.textContent=text||'';
+}
 
-  /* ===== Prefill from login ===== */
-  if(CURRENT_USER){
-    document.getElementById('empId').value = CURRENT_USER.id||'';
-    if(CURRENT_USER.tribe){
-      const t=`เผ่า ${CURRENT_USER.tribe}`;
-      for(const op of document.getElementById('tribe').options){
-        if(op.value===t) document.getElementById('tribe').value=t;
-      }
-    }
-  }
-
-  /* ===== Counter (per day) ===== */
-  function key(emp){return `ctr:${emp}:${todayLocal().iso}`;}
-  function readCtr(emp){try{return JSON.parse(localStorage.getItem(key(emp)))||{lunch:0,smoke:0,toilet:0}}catch{return {lunch:0,smoke:0,toilet:0}}}
-  function writeCtr(emp,c){try{localStorage.setItem(key(emp), JSON.stringify(c))}catch{}}
-  function renderCtr(emp,fromServer){
-    let c = readCtr(emp);
-    if(fromServer){
-      if(typeof fromServer.LunchCount  === 'number') c.lunch  = fromServer.LunchCount;
-      if(typeof fromServer.SmokeCount  === 'number') c.smoke  = fromServer.SmokeCount;
-      if(typeof fromServer.ToiletCount === 'number') c.toilet = fromServer.ToiletCount;
-      writeCtr(emp,c);
-    }
-    document.getElementById('c-lunch').textContent  = c.lunch;
-    document.getElementById('c-smoke').textContent  = c.smoke;
-    document.getElementById('c-toilet').textContent = c.toilet;
-  }
-  document.getElementById('empId').addEventListener('input',e=>{
-    const id=e.target.value.trim(); if(id) renderCtr(id);
-  });
-
-  /* ===== Status / Message ===== */
-  function setStatus(color,text){
-    const el=document.getElementById('status'); el.className='status';
-    if(color==='green') el.classList.add('s-green');
-    else if(color==='yellow') el.classList.add('s-yellow');
-    else if(color==='red') el.classList.add('s-red');
-    el.textContent=text||color||'—';
-  }
-  function setMsg(ok,text){
-    const el=document.getElementById('msg'); el.className='note '+(ok?'ok':'err'); el.textContent=text||'';
-  }
-
-  /* ===== GPS ===== */
-  function getPos(){return new Promise((res,rej)=>{
-    if(!navigator.geolocation) return rej(new Error('อุปกรณ์ไม่รองรับ GPS'));
-    navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lng:p.coords.longitude}),
-      rej,
-      {enableHighAccuracy:true,timeout:15000}
-    );
-  })}
-
-  /* ===== Break Timer (client reminder 60/20) ===== */
-  let breakDeadline = 0, breakTicker=null, breakType='';
-  function startBreakTimer(type){
-    clearInterval(breakTicker);
-    breakType = type;
-    const limitMin = (type==='lunch')?60:20; // ✅ ตามเงื่อนไข
-    breakDeadline = Date.now() + limitMin*60*1000;
-    const box = document.getElementById('breakTimer');
-    const paint = ()=>{
-      const remain = Math.max(0, breakDeadline - Date.now());
-      const mm = Math.floor(remain/60000), ss=Math.floor((remain%60000)/1000);
-      box.textContent = `กำลังพัก (${type==='lunch'?'ทานข้าว 60 นาที':'20 นาที'}): เหลือเวลา ${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
-      if(remain<=0){
-        clearInterval(breakTicker);
-        alert('ครบเวลาพักแล้ว กรุณากด "กลับจากพัก"');
-        box.textContent='ครบเวลาพักแล้ว';
-      }
+async function send(action){
+  const employeeId = u.id;
+  const tribe = locked ? `เผ่า ${locked}` : (u.role==='manager'?'':'');
+  if(!employeeId){ setMsg(false,'ไม่พบรหัส'); return; }
+  setMsg(true,'กำลังขอตำแหน่ง…');
+  let pos; try{ pos = await getPos(); }catch(e){ setMsg(false,'ต้องอนุญาต GPS'); return; }
+  setMsg(true,'กำลังส่งข้อมูล…');
+  try{
+    const payload = {
+      employeeId, tribe, action,
+      lat:pos.lat, lng:pos.lng,
+      clientTimeISO: nowISO(),
+      dateLocal: todayLocal().iso,
+      actorRole: 'employee', actorId: employeeId
     };
-    paint();
-    breakTicker = setInterval(paint, 1000);
+    const data = await postJSON(API.EMP_EVENT, payload);
+    if(data?.allowed===false){ setStatus('red','ไม่อนุญาต'); setMsg(false, data?.reason||'ถูกปฏิเสธ'); return; }
+    setStatus(data?.statusColor||'', data?.statusColor||'—');
+    setMsg(true, data?.message||'บันทึกสำเร็จ');
+  }catch(e){
+    setStatus('red','ผิดพลาด'); setMsg(false, e.message||e);
   }
-  function stopBreakTimer(){
-    clearInterval(breakTicker);
-    breakTicker=null; breakDeadline=0; breakType='';
-    document.getElementById('breakTimer').textContent='';
-  }
-
-  /* ===== SEND EVENT ===== */
-  function nowISO(){return new Date().toISOString();}
-  async function send(action){
-    const employeeId=(document.getElementById('empId').value||'').trim();
-    const tribe=document.getElementById('tribe').value;
-    if(!employeeId){ setMsg(false,'กรุณากรอกรหัสพนักงาน'); return; }
-    if(!tribe){ setMsg(false,'กรุณาเลือกเผ่า'); return; }
-
-    setMsg(true,'กำลังขอตำแหน่ง…');
-    let pos; try{ pos = await getPos(); }catch(e){ setMsg(false,'ต้องอนุญาตตำแหน่ง (GPS)'); return; }
-
-    setMsg(true,'กำลังส่งข้อมูล…');
-    try{
-      const payload={
-        employeeId, tribe, action,
-        lat:pos.lat, lng:pos.lng,
-        clientTimeISO: nowISO(),
-        dateLocal: todayLocal().iso,
-        actorRole:'employee', actorId:employeeId
-      };
-
-      const r = await fetch(WEBHOOK_URL,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const data = await r.json().catch(()=>({}));
-
-      if(!r.ok || (data && data.allowed===false)){
-        setStatus('red','ไม่อนุญาต');
-        setMsg(false, (data && data.reason) ? data.reason : 'ส่งข้อมูลไม่สำเร็จ');
-        return;
-      }
-
-      setStatus(data?.statusColor||'', data?.statusColor||'—');
-      setMsg(true, data?.message || 'บันทึกสำเร็จ');
-
-      // ตัวนับฝั่ง client ถ้า server ไม่ส่ง count กลับ
-      const srv={LunchCount:data?.row?.LunchCount, SmokeCount:data?.row?.SmokeCount, ToiletCount:data?.row?.ToiletCount};
-      if(['lunch','smoke_start','toilet_start'].includes(action) &&
-         !Object.values(srv).some(v=>typeof v==='number')){
-        const c = readCtr(employeeId);
-        if(action==='lunch') c.lunch++;
-        if(action==='smoke_start') c.smoke++;
-        if(action==='toilet_start') c.toilet++;
-        writeCtr(employeeId,c); renderCtr(employeeId);
-      }else{
-        renderCtr(employeeId,srv);
-      }
-
-      // จัดการจับเวลาเตือนฝั่ง client
-      if(['lunch','smoke_start','toilet_start'].includes(action)) startBreakTimer(action);
-      if(action==='break_back' || action==='checkout') stopBreakTimer();
-
-    }catch(e){
-      setMsg(false,'ส่งไม่สำเร็จ: '+(e.message||e));
-      setStatus('red','ผิดพลาด');
-    }
-  }
-
-  // แสดง counter ทันทีเมื่อเปิด
-  (function init(){
-    const id = document.getElementById('empId').value.trim();
-    if(id) renderCtr(id);
-  })();
+}
 </script>
 </body>
 </html>
