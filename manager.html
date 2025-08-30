@@ -1,28 +1,267 @@
-<!doctype html> 
+<!doctype html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<title>รายงานการแสกน (หัวหน้า)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<style>
-  :root{--blue:#2563eb;--border:#e2e8f0}
-  html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f8fafc;color:#0f172a}
-  .container{max-width:1140px;margin:24px auto;padding:0 16px}
-  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
-  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-  label{display:block;font-size:13px;color:#334155;margin-bottom:4px}
-  input,select{padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}
-  .btn{padding:9px 12px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer}
-  .btnPrimary{background:var(--blue);border:none;color:#fff}
-  table{width:100%;border-collapse:collapse;margin-top:12px;background:#fff;border:1px solid var(--border)}
-  th,td{border-bottom:1px solid var(--border);padding:8px 10px;text-align:left;font-size:14px}
-  th{background:#f1f5f9}
-  .badge{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #cbd5e1}
-  .b-green{background:#ecfdf5;border-color:#86efac}
-  .b-yellow{background:#fffbeb;border-color:#fde68a}
-  .b-red{background:#fef2f2;border-color:#fecaca}
-  .chip{padding:8px 10px;border-radius:10px;border:1px solid #bfdbfe;background:#eff6ff}
+  <meta charset="utf-8">
+  <title>รายงานการแสกน (หัวหน้า/ผู้จัดการ)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="row" style="align-items:center">
+      <h2 style="margin:0">รายงานการแสกน</h2>
+      <div class="note" style="margin-left:auto" id="who"></div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card">
+    <div class="row">
+      <div><label>วันที่</label><input id="fDate" type="date"></div>
+      <div>
+        <label>เผ่า</label>
+        <select id="fTribe">
+          <option value="">ทั้งหมด</option>
+          <option value="1">เผ่า 1</option><option value="2">เผ่า 2</option>
+          <option value="3">เผ่า 3</option><option value="4">เผ่า 4</option>
+        </select>
+      </div>
+      <div style="flex:1 1 220px"><label>ค้นหา (รหัส/ชื่อ)</label><input id="fSearch" placeholder="เช่น 100234 หรือชื่อ"></div>
+      <div>
+        <label>สถานะ</label>
+        <select id="fStatus"><option value="">ทั้งหมด</option><option value="red">แดง</option><option value="yellow">ส้ม/เหลือง</option><option value="green">เขียว</option></select>
+      </div>
+      <div>
+        <label>พื้นที่</label>
+        <select id="fArea"><option value="">ทั้งหมด</option><option value="1">ในพื้นที่</option><option value="0">นอกพื้นที่</option></select>
+      </div>
+      <div>
+        <label>เฉพาะเวรของฉัน</label>
+        <select id="fAssigned"><option value="0">ไม่จำกัด</option><option value="1">เฉพาะมอบหมาย</option></select>
+      </div>
+      <div>
+        <label>เฉพาะคนสาย</label>
+        <select id="fLate"><option value="">ทั้งหมด</option><option value="1">เฉพาะคนสาย</option></select>
+      </div>
+      <button class="btn btnPrimary" onclick="loadView()">ค้นหา</button>
+    </div>
+  </div>
+
+  <!-- Summary chips -->
+  <div class="card row">
+    <span class="chip green">เข้างานแล้ว: <b id="sIn">0</b></span>
+    <span class="chip yellow">พักอยู่: <b id="sBreak">0</b></span>
+    <span class="chip red">ออกงานแล้ว: <b id="sOut">0</b></span>
+    <span class="chip">ในพื้นที่: <b id="sArea">0</b></span>
+  </div>
+
+  <!-- Chart -->
+  <div class="card"><canvas id="chart" height="120"></canvas></div>
+
+  <!-- ทำแทน/ปุ่ม -->
+  <div class="card">
+    <h3 style="margin-top:0">ลงเวลา (หัวหน้า/ทำแทนพนักงาน)</h3>
+    <div class="row">
+      <div><label>โหมด</label><select id="mMode"><option value="self">ฉัน (หัวหน้า/ผจก.)</option><option value="proxy">ทำแทนพนักงาน</option></select></div>
+      <div><label>รหัสพนักงาน</label><input id="mEmp" placeholder="ดับเบิลคลิกที่แถวเพื่อเลือก"></div>
+      <div><label>เผ่า</label><select id="mTribe"><option>เผ่า 1</option><option>เผ่า 2</option><option>เผ่า 3</option><option>เผ่า 4</option></select></div>
+      <div style="flex:1 1 280px"><label>เหตุผล (ต้องใส่เมื่อทำแทน)</label><input id="mReason" placeholder="เช่น ลืมกดเข้า / อุปกรณ์มีปัญหา"></div>
+      <div class="row" style="gap:8px">
+        <button class="btn" onclick="act('checkin')">เข้างาน</button>
+        <button class="btn" onclick="act('checkout')">ออกงาน</button>
+        <button class="btn" onclick="act('lunch')">ทานข้าว</button>
+        <button class="btn" onclick="act('smoke_start')">สูบบุหรี่</button>
+        <button class="btn" onclick="act('toilet_start')">เข้าห้องน้ำ</button>
+        <button class="btn btnPrimary" onclick="act('break_back')">กลับจากพัก</button>
+      </div>
+    </div>
+    <div id="actionMsg" class="note" style="margin-top:6px;color:#0f766e"></div>
+  </div>
+
+  <!-- ตาราง -->
+  <div class="card">
+    <div class="note" style="margin-bottom:6px">ดับเบิลคลิกแถวเพื่อใส่หมายเหตุ/เลือกทำแทน</div>
+    <table class="table" id="tbl">
+      <thead>
+      <tr>
+        <th>วันที่</th><th>เผ่า</th><th>รหัส</th><th>ชื่อ</th>
+        <th>เข้างาน</th><th>ออกพัก</th><th>กลับจากพัก</th><th>ออกงาน</th>
+        <th>รวมเวลาทำงาน</th><th>สถานะ</th><th>หมายเหตุ</th>
+      </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="row" style="margin-top:10px">
+      <input id="rEmp" placeholder="รหัสพนักงาน" style="flex:0 0 220px">
+      <input id="rTxt" placeholder="หมายเหตุ" style="flex:1">
+      <button class="btn btnPrimary" onclick="saveRemark()">บันทึกหมายเหตุ</button>
+    </div>
+    <div id="msg" class="note" style="margin-top:6px;color:#0f766e"></div>
+  </div>
+</div>
+
+<script src="common.js"></script>
+<script>
+const u = getCurrentUser();
+if(!u){ alert('กรุณาเข้าสู่ระบบ'); location.href='index.html'; }
+document.getElementById('who').textContent = `${u?.name||''} (${u?.id||''}) • บทบาท: ${u.role}`;
+
+function todayISO(){return todayLocal().iso;}
+document.getElementById('fDate').value = todayISO();
+
+let chart;
+function drawChart(byHour){
+  const hours=Object.keys(byHour||{}).sort();
+  const i=hours.map(h=>byHour[h]?.in||0), b=hours.map(h=>byHour[h]?.break||0), o=hours.map(h=>byHour[h]?.out||0);
+  const ctx=document.getElementById('chart'); if(chart) chart.destroy();
+  chart=new Chart(ctx,{type:'bar',data:{labels:hours,datasets:[{label:'เข้างาน',data:i},{label:'พัก',data:b},{label:'ออกงาน',data:o}]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}}}});
+}
+
+function rowColor(row){
+  if(row.statusColor) return String(row.statusColor).toLowerCase();
+  if(row.inArea===false) return 'red';
+  if(row.break && !row.back) return 'yellow';
+  return 'green';
+}
+
+async function loadView(){
+  try{
+    const date=document.getElementById('fDate').value||todayISO();
+    const tribe=document.getElementById('fTribe').value;
+    const url = `${API.MGR_DAILY}?${new URLSearchParams({date, ...(tribe?{tribe}:{})})}`;
+    const data = await getJSON(url);
+
+    // summary
+    document.getElementById('sIn').textContent   = data.summary?.checkedIn||0;
+    document.getElementById('sBreak').textContent= data.summary?.onBreak||0;
+    document.getElementById('sOut').textContent  = data.summary?.checkedOut||0;
+    document.getElementById('sArea').textContent = data.summary?.inArea||0;
+
+    // filter client
+    const q=(document.getElementById('fSearch').value||'').toLowerCase().trim();
+    const qTribe=document.getElementById('fTribe').value;
+    const qStatus=document.getElementById('fStatus').value;
+    const qArea=document.getElementById('fArea').value;
+    const onlyAsg=document.getElementById('fAssigned').value==='1';
+    const onlyLate=document.getElementById('fLate').value==='1';
+    const assigned=(u?.assignedTribes||[]).map(String);
+
+    const LATE_HH=9,LATE_MM=0;
+
+    let rows=(data.rows||[]).slice().filter(row=>{
+      if(qTribe && String(row.tribe||'')!==qTribe) return false;
+      if(onlyAsg && !assigned.includes(String(row.tribe||''))) return false;
+      if(qStatus && rowColor(row)!==qStatus) return false;
+      if(qArea==='1' && row.inArea===false) return false;
+      if(qArea==='0' && row.inArea!==false) return false;
+      if(onlyLate){
+        const cin=String(row.checkIn||'');
+        if(!/^\d{2}:\d{2}$/.test(cin)) return false;
+        const [hh,mm]=cin.split(':').map(x=>parseInt(x,10));
+        const late=(hh>LATE_HH)||(hh===LATE_HH && mm>LATE_MM);
+        if(!late) return false;
+      }
+      if(q){
+        const hay=`${row.employeeId||''} ${row.name||''}`.toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    // sort red -> yellow -> green
+    const priority={red:0,yellow:1,orange:1,green:2};
+    rows.sort((a,b)=>{
+      const pa=priority[rowColor(a)]??3, pb=priority[rowColor(b)]??3;
+      if(pa!==pb) return pa-pb;
+      return String(a.employeeId||'').localeCompare(String(b.employeeId||''));
+    });
+
+    // table
+    const tb=document.querySelector('#tbl tbody'); tb.innerHTML='';
+    rows.forEach(row=>{
+      const col=rowColor(row);
+      const badge=(col==='red')?'<span class="chip red">สีแดง</span>':(col==='yellow'||col==='orange')?'<span class="chip yellow">สีส้ม</span>':'<span class="chip green">สีเขียว</span>';
+      const warn=(row.workTotalMin||0)<480?' style="color:#b91c1c;font-weight:600"':'';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${row.date||''}</td><td>${row.tribe||''}</td><td>${row.employeeId||''}</td><td>${row.name||''}</td>
+        <td>${row.checkIn||''}</td><td>${row.break||''}</td><td>${row.back||''}</td><td>${row.checkOut||''}</td>
+        <td${warn}>${row.totalWork||row.workTotalHM||''}</td><td>${badge}</td><td>${row.remark||''}</td>
+      `;
+      tr.ondblclick=()=>{
+        document.getElementById('rEmp').value=row.employeeId||'';
+        document.getElementById('mEmp').value=row.employeeId||'';
+        document.getElementById('mTribe').value=(String(row.tribe).startsWith('เผ่า')?row.tribe:`เผ่า ${row.tribe}`);
+        document.getElementById('rTxt').focus();
+      }
+      tb.appendChild(tr);
+    });
+
+    drawChart(data.byHour||{});
+  }catch(e){ alert(e.message||e); }
+}
+
+async function act(action){
+  const mode=document.getElementById('mMode').value;
+  const msg=document.getElementById('actionMsg');
+  let employeeId, tribe=document.getElementById('mTribe').value, reason=(document.getElementById('mReason').value||'').trim();
+
+  if(mode==='self'){ employeeId=u.id; }
+  else{
+    employeeId=(document.getElementById('mEmp').value||'').trim();
+    if(!employeeId){ msg.textContent='กรุณารหัสพนักงาน'; msg.style.color='#dc2626'; return; }
+    if(!reason || reason.length<4){ msg.textContent='กรุณาระบุเหตุผลอย่างน้อย 4 ตัวอักษร'; msg.style.color='#dc2626'; return; }
+  }
+
+  // อนุญาตเฉพาะเผ่าที่มอบหมาย (หัวหน้า/ผู้จัดการ)
+  const tribeNum=String(tribe.replace('เผ่า','').trim());
+  const asg=(u?.assignedTribes||[]).map(String);
+  if(asg.length && !asg.includes(tribeNum)){ msg.textContent=`คุณไม่ได้รับมอบหมายดูแลเผ่า ${tribeNum}`; msg.style.color='#dc2626'; return; }
+
+  msg.textContent='กำลังส่ง...'; msg.style.color='#0f766e';
+  try{
+    const pos=await getPos();
+    const payload={
+      employeeId, tribe, action,
+      lat:pos.lat, lng:pos.lng,
+      clientTimeISO: new Date().toISOString(),
+      dateLocal: document.getElementById('fDate').value||todayISO(),
+      actorRole:u.role, actorId:u.id, proxyReason:reason
+    };
+    const data=await postJSON(API.EMP_EVENT,payload);
+    if(!data.allowed) throw new Error(data.reason||data.message||('ไม่อนุญาต'));
+    msg.textContent=data.message||'สำเร็จ';
+    loadView();
+  }catch(e){ msg.textContent='ผิดพลาด: '+(e.message||e); msg.style.color='#dc2626'; }
+}
+
+async function saveRemark(){
+  const employeeId=(document.getElementById('rEmp').value||'').trim();
+  const remark=(document.getElementById('rTxt').value||'').trim();
+  const dateLocal=document.getElementById('fDate').value||todayISO();
+  const msg=document.getElementById('msg');
+  if(!employeeId || !remark){ msg.textContent='กรุณารหัสพนักงานและหมายเหตุ'; msg.style.color='#dc2626'; return; }
+  msg.textContent='กำลังบันทึก...'; msg.style.color='#0f766e';
+  try{
+    const data=await postJSON(API.MGR_REMARK,{dateLocal,employeeId,remark,managerId:u.id});
+    if(data.ok===false) throw new Error(data.message||'บันทึกไม่สำเร็จ');
+    msg.textContent='บันทึกแล้ว'; document.getElementById('rTxt').value=''; loadView();
+  }catch(e){ msg.textContent='ผิดพลาด: '+(e.message||e); msg.style.color='#dc2626'; }
+}
+
+// live filter
+['fSearch','fStatus','fArea','fAssigned','fLate','fTribe','fDate'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',loadView);
+});
+document.getElementById('fSearch').addEventListener('input',()=>{clearTimeout(window._t); window._t=setTimeout(loadView,300);});
+loadView();
+</script>
+</body>
+</html>
+
   .chip.green{background:#ecfdf5;border-color:#bbf7d0}
   .chip.yellow{background:#fffbeb;border-color:#fde68a}
   .chip.red{background:#fef2f2;border-color:#fecaca}
