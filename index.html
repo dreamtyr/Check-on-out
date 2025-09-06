@@ -4,147 +4,47 @@
   <meta charset="utf-8">
   <title>เข้าสู่ระบบ</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
-  <div class="card">
-    <h1>เข้าสู่ระบบ</h1>
-    <div class="sub">กรอกรหัสพนักงานเพื่อยืนยันตัวตน</div>
+  <h1>เข้าสู่ระบบ</h1>
+  <div>วันนี้: <span id="today"></span> • เวลา: <span id="now"></span></div>
 
-    <div class="row">
-      <div style="flex:1 1 220px">
-        <label>รหัสพนักงาน</label>
-        <input id="empId" placeholder="เช่น 100234" inputmode="numeric" autocomplete="off">
-      </div>
-      <button class="btn btnPrimary" onclick="doLogin()">เข้าสู่ระบบ</button>
-    </div>
-    <div id="msg" class="note" style="margin-top:6px"></div>
+  <input id="empId" placeholder="รหัสพนักงาน">
+  <button onclick="doLogin()">เข้าสู่ระบบ</button>
+  <div id="msg"></div>
 
-    <div id="afterLogin" style="display:none">
-      <div class="hr"></div>
-      <h3 id="hello">—</h3>
-      <div class="sub">เลือกเผ่า (พนักงานเลือก 1, หัวหน้าเลือกได้หลายเผ่า, ผู้จัดการไม่ต้องเลือก)</div>
+  <!-- โหลด common.js ก่อน -->
+  <script src="common.js"></script>
 
-      <div id="selectTribeBox" class="row" style="align-items:flex-start">
-        <div style="flex:1 1 260px">
-          <label>เผ่า</label>
-          <select id="tribe" style="width:100%">
-            <option value="1">เผ่า 1</option>
-            <option value="2">เผ่า 2</option>
-            <option value="3">เผ่า 3</option>
-            <option value="4">เผ่า 4</option>
-          </select>
-          <div class="note" id="tribeNote"></div>
-        </div>
-        <div style="flex:1 1 260px;display:none" id="tribeMultiBox">
-          <label>เผ่าที่รับผิดชอบ (หัวหน้าเลือกหลายเผ่าได้)</label>
-          <select id="tribeMulti" multiple size="4" style="width:100%">
-            <option value="1">เผ่า 1</option>
-            <option value="2">เผ่า 2</option>
-            <option value="3">เผ่า 3</option>
-            <option value="4">เผ่า 4</option>
-          </select>
-          <div class="note">กด Ctrl/Shift เพื่อเลือกหลายรายการ</div>
-        </div>
-      </div>
+  <!-- script หลัก -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // ตั้งวันที่/เวลา
+      document.getElementById('today').textContent = todayLocal().display;
+      setInterval(() => {
+        document.getElementById('now').textContent = new Date().toLocaleTimeString();
+      }, 1000);
+    });
 
-      <div class="row" style="margin-top:12px">
-        <button class="btn" onclick="goEmployee()">ไปหน้าพนักงาน</button>
-        <button class="btn" onclick="goManager()">ไปหน้าผู้จัดการ/หัวหน้า</button>
-      </div>
-
-      <div class="footer">
-        วันนี้: <span id="today"></span> • เวลาเครื่อง: <span id="now"></span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- libs -->
-<script src="common.js"></script>
-<script>
-document.getElementById('today').textContent = todayLocal().display;
-setInterval(()=>document.getElementById('now').textContent = new Date().toLocaleTimeString(),1000);
-
-function setMsg(ok,text){const el=document.getElementById('msg'); el.style.color=ok?'#86efac':'#fca5a5'; el.textContent=text||'';}
-
-async function doLogin(){
-  setMsg(true,'กำลังตรวจสอบ…');
-  const id = (document.getElementById('empId').value||'').trim();
-  if(!id){ setMsg(false,'กรุณากรอกรหัส'); return; }
-  try{
-    const data = await postJSON(API.LOGIN,{employeeId:id});
-    if(!data?.ok){ setMsg(false, data?.message||'ไม่พบรหัส'); return; }
-
-    // บันทึก user ลง localStorage
-    const u = {
-      id: id,
-      name: data.employeeName || data.name || '',
-      role: data.role || 'employee',                 // 'manager'|'leader'|'employee'
-      assignedTribes: data.assignedTribes || []      // เฉพาะหัวหน้า/ผู้จัดการ
-    };
-    setCurrentUser(u);
-
-    // เตรียม UI เลือกเผ่า
-    const hello = `${u.name||''} (${u.id}) • บทบาท: ${u.role}`;
-    document.getElementById('hello').textContent = hello;
-    document.getElementById('afterLogin').style.display='block';
-
-    // ถ้าล็อกเผ่าวันนี้แล้ว ให้แจ้ง
-    const locked = getLockedTribe(u.id, todayLocal().iso);
-    const noteEl = document.getElementById('tribeNote');
-    if(locked){
-      noteEl.textContent = `วันนี้คุณล็อกไว้ที่ "เผ่า ${locked}" แล้ว`;
-    }else{
-      noteEl.textContent = 'วันนี้ยังไม่ล็อกเผ่า';
+    function setMsg(ok, text){
+      const el = document.getElementById('msg');
+      el.style.color = ok ? 'green' : 'red';
+      el.textContent = text;
     }
 
-    // ผู้จัดการ: ไม่ต้องเลือกเผ่า
-    if(u.role==='manager'){
-      document.getElementById('selectTribeBox').style.display='none';
-    }else if(u.role==='leader'){
-      // หัวหน้า: เลือกหลายเผ่าได้ (เก็บแค่สิทธิ์สำหรับหน้า manager)
-      document.getElementById('tribeMultiBox').style.display='block';
-      const multi = document.getElementById('tribeMulti');
-      // preselect assignedTribes ถ้าส่งมาจาก n8n
-      for(const op of multi.options){
-        if(u.assignedTribes?.map(String).includes(op.value)) op.selected = true;
+    async function doLogin(){
+      setMsg(true, 'กำลังตรวจสอบ…');
+      const id = (document.getElementById('empId').value||'').trim();
+      if(!id){ setMsg(false, 'กรุณากรอกรหัส'); return; }
+      try {
+        const data = await postJSON(API.LOGIN, { employeeId: id });
+        if(!data?.ok){ setMsg(false, data?.message || 'ไม่พบรหัส'); return; }
+        setMsg(true, 'เข้าสู่ระบบสำเร็จ');
+        setCurrentUser({ id, ...data });
+      } catch(e) {
+        setMsg(false, e.message||e);
       }
-    }else{
-      document.getElementById('selectTribeBox').style.display='flex';
-      document.getElementById('tribeMultiBox').style.display='none';
     }
-
-    setMsg(true,'เข้าสู่ระบบสำเร็จ');
-  }catch(e){
-    setMsg(false, e.message||e);
-  }
-}
-
-function goEmployee(){
-  const u=getCurrentUser(); if(!u){setMsg(false,'กรุณาเข้าสู่ระบบก่อน'); return;}
-  // พนักงานต้องเลือกเผ่า (ถ้ายังไม่ล็อก)
-  if(u.role==='employee'){
-    const locked = getLockedTribe(u.id, todayLocal().iso);
-    if(!locked){
-      const t = document.getElementById('tribe').value;
-      if(!t){setMsg(false,'กรุณาเลือกเผ่า'); return;}
-      lockTribeForToday(u.id, todayLocal().iso, t);
-    }
-  }
-  location.href='employee.html';
-}
-function goManager(){
-  const u=getCurrentUser(); if(!u){setMsg(false,'กรุณาเข้าสู่ระบบก่อน'); return;}
-  // ถ้าเป็นหัวหน้าและเลือกหลายเผ่า ปรับ assignedTribes ใน session
-  if(u.role==='leader'){
-    const sel=[...document.getElementById('tribeMulti').selectedOptions].map(o=>o.value);
-    u.assignedTribes = sel.length? sel.map(x=>Number(x)) : u.assignedTribes;
-    setCurrentUser(u);
-  }
-  location.href='manager.html';
-}
-</script>
+  </script>
 </body>
 </html>
