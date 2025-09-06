@@ -1,10 +1,9 @@
-<script>
 // ===================== CONFIG: ชี้ไปที่ n8n ของคุณ =====================
 const API = {
-  LOGIN:        'http://localhost:5678/webhook-test/login',            // POST {employeeId}
-  EMP_EVENT:    'http://localhost:5678/webhook-test/employee-event',   // POST payload action
-  MGR_DAILY:    'http://localhost:5678/webhook-test/manager-daily',    // GET ?date=YYYY-MM-DD&tribe=1
-  MGR_REMARK:   'http://localhost:5678/webhook-test/manager-remark',   // POST {dateLocal,employeeId,remark,managerId}
+  LOGIN:        'http://localhost:5678/webhook-test/login',
+  EMP_EVENT:    'http://localhost:5678/webhook-test/employee-event',
+  MGR_DAILY:    'http://localhost:5678/webhook-test/manager-daily',
+  MGR_REMARK:   'http://localhost:5678/webhook-test/manager-remark',
 };
 
 // ===================== Helper: วัน/เวลา/เก็บ localStorage =====================
@@ -21,17 +20,10 @@ function setLS(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)) }c
 function getLS(key, fallback=null){ try{ return JSON.parse(localStorage.getItem(key)||'null') ?? fallback }catch{ return fallback } }
 
 // ===================== USER SESSION =====================
-/*
- currentUser = {
-   id, name, role, assignedTribes: [1,2],    // จาก login
-   tribeLockedForDay: { '2025-08-31': '1' }  // เก็บเผ่าที่เลือกแล้ว/วัน
- }
-*/
 function setCurrentUser(u){ setLS('currentUser', u); }
 function getCurrentUser(){ return getLS('currentUser', null); }
 function clearCurrentUser(){ localStorage.removeItem('currentUser'); }
 
-// tribe สำหรับวันนั้น
 function getLockedTribe(empId, dateIso){
   const u = getCurrentUser();
   if(!u || u.id!==empId) return null;
@@ -58,7 +50,6 @@ async function postJSON(url, body){
   if(!r.ok) throw new Error(data?.message || ('HTTP '+r.status));
   return data;
 }
-
 async function getJSON(url){
   const r = await fetch(url);
   const data = await r.json().catch(()=>({}));
@@ -74,4 +65,3 @@ function getPos(){return new Promise((res,rej)=>{
     rej,{enableHighAccuracy:true,timeout:15000}
   );
 });}
-</script>
